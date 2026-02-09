@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/povilassl/tcp_chat/server/connection"
 	"github.com/povilassl/tcp_chat/server/hub"
 )
 
@@ -20,12 +25,28 @@ func main() {
 
 	fmt.Println("Listening on port 8000...")
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		<-ctx.Done()
+		fmt.Println("Shutting down server...")
+		h.Shutdown()
+		ln.Close()
+	}()
+
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			panic(err)
+			select {
+			case <-ctx.Done():
+				fmt.Println("Server stopped accepting new connections.")
+				return
+			default:
+				panic(err)
+			}
 		}
 
-		go h.HandleConnection(conn)
+		go connection.Handle(h, conn)
 	}
 }

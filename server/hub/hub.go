@@ -2,6 +2,7 @@ package hub
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -9,62 +10,25 @@ import (
 type Hub struct {
 	clients    map[uint64]*Client
 	connect    chan *Client
-	disconnect chan *Client
+	disconnect chan DisconnectEvent
 	broadcast  chan Message
 	send       chan Message
 	execute    chan Command
+}
+
+type DisconnectEvent struct {
+	Client *Client
+	Reason string
 }
 
 func NewHub() *Hub {
 	return &Hub{
 		clients:    make(map[uint64]*Client),
 		connect:    make(chan *Client),
-		disconnect: make(chan *Client),
+		disconnect: make(chan DisconnectEvent),
 		broadcast:  make(chan Message),
 		send:       make(chan Message),
 		execute:    make(chan Command),
-	}
-}
-
-func (h *Hub) Run() {
-	for {
-		select {
-		case c := <-h.connect:
-			h.clients[c.ID] = c
-
-		case c := <-h.disconnect:
-			if existingClient, ok := h.clients[c.ID]; ok {
-				close(existingClient.Send)
-				existingClient.Conn.Close()
-				delete(h.clients, c.ID)
-			}
-
-		case msg := <-h.broadcast:
-			for _, c := range h.clients {
-				if c.ID == msg.From.ID {
-					continue
-				}
-				select {
-				case c.Send <- &msg:
-				default:
-					disconnectSlowClient(c, h)
-				}
-			}
-
-		case msg := <-h.send:
-			if msg.To > 0 {
-				if c, ok := h.clients[msg.To]; ok {
-					select {
-					case c.Send <- &msg:
-					default:
-						disconnectSlowClient(c, h)
-					}
-				}
-			}
-
-		case cmd := <-h.execute:
-			h.ExecuteCommand(cmd)
-		}
 	}
 }
 
@@ -72,8 +36,11 @@ func (h *Hub) Connect(c *Client) {
 	h.connect <- c
 }
 
-func (h *Hub) Disconnect(c *Client) {
-	h.disconnect <- c
+func (h *Hub) Disconnect(c *Client, reason string) {
+	h.disconnect <- DisconnectEvent{
+		Client: c,
+		Reason: reason,
+	}
 }
 
 func (h *Hub) Broadcast(msg Message) {
@@ -97,27 +64,202 @@ func (h *Hub) SendGreeting(client *Client) {
 	welcomeMessage += "-----------------------------\r\n"
 
 	h.SendDirect(Message{
-		Text:   welcomeMessage,
-		To:     client.ID,
-		System: true,
+		Text: welcomeMessage,
+		To:   client,
+		Type: MessageSystem,
 	})
 }
 
-func (h *Hub) HandleMessage(s string, c *Client) {
-	if strings.HasPrefix(s, "/") {
-		h.Execute(Command{
-			Text: s,
-			From: c})
-	} else {
-		h.Broadcast(Message{
-			Text:   s,
-			From:   c,
-			System: false,
+func (h *Hub) Run() {
+	for {
+		select {
+		case c := <-h.connect:
+			h.handleConnect(c)
+
+		case ev := <-h.disconnect:
+			h.handleDisconnect(ev)
+
+		case msg := <-h.broadcast:
+			h.handleBroadcast(msg)
+
+		case msg := <-h.send:
+			h.handleSend(msg)
+
+		case cmd := <-h.execute:
+			h.handleExecute(cmd)
+		}
+	}
+}
+
+func (h *Hub) handleConnect(c *Client) {
+	h.clients[c.ID] = c
+}
+
+func (h *Hub) handleDisconnect(ev DisconnectEvent) {
+
+	c := ev.Client
+
+	existingClient, ok := h.clients[ev.Client.ID]
+	if !ok {
+		return
+	}
+
+	fmt.Printf("Disconnecting client with ID %d. Reason: %s\r\n", c.ID, ev.Reason)
+
+	close(existingClient.Send)
+	existingClient.Conn.Close()
+	delete(h.clients, c.ID)
+}
+
+func (h *Hub) handleBroadcast(msg Message) {
+	for _, c := range h.clients {
+		if msg.From != nil && c.ID == msg.From.ID {
+			continue
+		}
+
+		select {
+		case c.Send <- &msg:
+		default:
+			fmt.Println("Disconnecting slow client. Client ID:", c.ID)
+			h.handleDisconnect(DisconnectEvent{
+				Client: c,
+				Reason: "slow",
+			})
+		}
+	}
+}
+
+func (h *Hub) handleSend(msg Message) {
+	if msg.To != nil {
+		if c, ok := h.clients[msg.To.ID]; ok {
+			select {
+			case c.Send <- &msg:
+			default:
+				fmt.Println("Disconnecting slow client. Client ID:", c.ID)
+				h.handleDisconnect(DisconnectEvent{
+					Client: c,
+					Reason: "slow",
+				})
+			}
+		}
+	}
+}
+
+func (h *Hub) handleExecute(cmd Command) {
+
+	parts := strings.Split(cmd.Text, " ")
+
+	switch parts[0] {
+	case "/name":
+		if len(parts) != 2 {
+			h.handleSend(Message{
+				Text: "Incorrect number of arguments. Usage: /name <new_name>",
+				To:   cmd.From,
+				Type: MessageSystem,
+			})
+
+			return
+		}
+
+		originalName := cmd.From.Name
+		newName := strings.TrimSpace(parts[1])
+
+		// Validate new name
+		if len(newName) == 0 || len(newName) > 14 {
+			h.handleSend(Message{
+				Text: "Name must be between 1 and 14 characters long",
+				To:   cmd.From,
+				Type: MessageSystem,
+			})
+			return
+		}
+
+		if !regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(newName) {
+			h.handleSend(Message{
+				Text: "Name must contain only letters and numbers",
+				To:   cmd.From,
+				Type: MessageSystem,
+			})
+			return
+		}
+
+		cmd.From.Rename(newName)
+
+		h.handleBroadcast(Message{
+			Text: fmt.Sprintf("%s is now known as %s", originalName, newName),
+			Type: MessageSystem,
+		})
+
+	case "/msg":
+		if len(parts) != 3 {
+			h.handleSend(Message{
+				Text: "Incorrect number of arguments. Usage: /msg <name> <message>",
+				To:   cmd.From,
+				Type: MessageSystem,
+			})
+
+			return
+		}
+
+		existingClient := h.findClientByName(parts[1])
+		if existingClient == nil {
+			h.handleSend(Message{
+				Text: "Client '" + parts[1] + "' is not currently online",
+				To:   cmd.From,
+				Type: MessageSystem,
+			})
+		}
+
+		h.handleSend(Message{
+			Text: parts[2],
+			To:   existingClient,
+			From: cmd.From,
+			Type: MessageDirect,
+		})
+
+	case "/quit":
+		h.handleDisconnect(DisconnectEvent{
+			Client: cmd.From,
+			Reason: "requested",
+		})
+
+		h.handleBroadcast(Message{
+			Text: fmt.Sprintf("%s left the server", cmd.From.Name),
+			Type: MessageSystem,
+		})
+
+	default:
+		h.handleSend(Message{
+			Text: "Unknown command: " + parts[0],
+			To:   cmd.From,
+			Type: MessageSystem,
 		})
 	}
 }
 
-func disconnectSlowClient(c *Client, h *Hub) {
-	fmt.Println("Disconnecting slow client. Client ID:", c.ID)
-	h.disconnect <- c
+func (h *Hub) findClientByName(s string) *Client {
+	for _, c := range h.clients {
+		if c.Name == s {
+			return c
+		}
+	}
+
+	return nil
+}
+
+func (h *Hub) Shutdown() {
+	fmt.Println("Disconnecting all clients...")
+
+	for _, c := range h.clients {
+
+		c.Send <- &Message{
+			Text: "Server shutting down...",
+			Type: MessageSystem,
+		}
+
+		h.handleDisconnect(DisconnectEvent{
+			Client: c,
+			Reason: "server shutdown",
+		})
+	}
 }

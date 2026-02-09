@@ -20,7 +20,7 @@ func NewClient(conn net.Conn) *Client {
 
 	return &Client{
 		ID:   id,
-		Name: "Guest #" + fmt.Sprint(id),
+		Name: "Guest" + fmt.Sprint(id),
 		Conn: conn,
 		Send: make(chan *Message, 16),
 	}
@@ -28,14 +28,14 @@ func NewClient(conn net.Conn) *Client {
 
 func (c *Client) StartWriter(h *Hub) {
 	for msg := range c.Send {
-		formattedMessage := formatMessage(msg, c)
+		formattedMessage := formatMessage(msg)
 		if _, err := c.Conn.Write([]byte(formattedMessage)); err != nil {
-			h.Disconnect(c)
+			h.Disconnect(c, "write error")
 			return
 		}
 	}
 }
 
-func (client *Client) Rename(newName string) {
-	client.Name = newName
+func (c *Client) Rename(newName string) {
+	c.Name = newName
 }
