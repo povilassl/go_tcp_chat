@@ -147,11 +147,10 @@ func (h *Hub) handleSend(msg Message) {
 
 func (h *Hub) handleExecute(cmd Command) {
 
-	parts := strings.Split(cmd.Text, " ")
-
-	switch parts[0] {
-	case "/name":
-		if len(parts) != 2 {
+	switch {
+	case strings.HasPrefix(cmd.Text, "/name"):
+		args := strings.SplitN(cmd.Text, " ", 2)
+		if len(args) != 2 {
 			h.handleSend(Message{
 				Text: "Incorrect number of arguments. Usage: /name <new_name>",
 				To:   cmd.From,
@@ -162,7 +161,7 @@ func (h *Hub) handleExecute(cmd Command) {
 		}
 
 		originalName := cmd.From.Name
-		newName := strings.TrimSpace(parts[1])
+		newName := strings.TrimSpace(args[1])
 
 		// Validate new name
 		if len(newName) == 0 || len(newName) > 14 {
@@ -190,8 +189,9 @@ func (h *Hub) handleExecute(cmd Command) {
 			Type: MessageSystem,
 		})
 
-	case "/msg":
-		if len(parts) != 3 {
+	case strings.HasPrefix(cmd.Text, "/msg"):
+		args := strings.SplitN(cmd.Text, " ", 3)
+		if len(args) != 3 {
 			h.handleSend(Message{
 				Text: "Incorrect number of arguments. Usage: /msg <name> <message>",
 				To:   cmd.From,
@@ -201,36 +201,54 @@ func (h *Hub) handleExecute(cmd Command) {
 			return
 		}
 
-		existingClient := h.findClientByName(parts[1])
+		var clientName = args[1]
+		var messageText = args[2]
+
+		existingClient := h.findClientByName(clientName)
 		if existingClient == nil {
 			h.handleSend(Message{
-				Text: "Client '" + parts[1] + "' is not currently online",
+				Text: "Client '" + clientName + "' is not currently online",
 				To:   cmd.From,
 				Type: MessageSystem,
 			})
 		}
 
 		h.handleSend(Message{
-			Text: parts[2],
+			Text: messageText,
 			To:   existingClient,
 			From: cmd.From,
 			Type: MessageDirect,
 		})
 
-	case "/quit":
+	case strings.HasPrefix(cmd.Text, "/quit"):
+		args := strings.SplitN(cmd.Text, " ", 2)
+
+		exitMessage := fmt.Sprintf("%s left the server", cmd.From.Name)
+
+		if len(args) == 2 {
+			exitMessage += fmt.Sprintf(". Goodbye message: %s", args[1])
+		}
+
+		h.handleBroadcast(Message{
+			Text: exitMessage,
+			Type: MessageSystem,
+		})
+
 		h.handleDisconnect(DisconnectEvent{
 			Client: cmd.From,
 			Reason: "requested",
 		})
 
-		h.handleBroadcast(Message{
-			Text: fmt.Sprintf("%s left the server", cmd.From.Name),
+	case strings.HasPrefix(cmd.Text, "/help"):
+		h.handleSend(Message{
+			Text: "Available commands: TODO",
+			To:   cmd.From,
 			Type: MessageSystem,
 		})
 
 	default:
 		h.handleSend(Message{
-			Text: "Unknown command: " + parts[0],
+			Text: "Unknown command, send '/help' for a list of available commands",
 			To:   cmd.From,
 			Type: MessageSystem,
 		})

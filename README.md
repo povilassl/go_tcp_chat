@@ -13,6 +13,7 @@
 ### TODO
 
 - [ ] Add excluded clients to broadcast?
+- [ ] Help message
 - [ ] Persistence
   - [ ] Load messages?
   - [ ] Register / login
