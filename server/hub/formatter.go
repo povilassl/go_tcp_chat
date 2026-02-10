@@ -20,6 +20,12 @@ func formatMessage(m *Message) string {
 		} else {
 			sender = "Guest"
 		}
+
+	case MessageChannel:
+		sender = fmt.Sprintf("%s in Channel", m.From.Name) //TODO
+
+	default:
+		sender = "Unknown"
 	}
 
 	return fmt.Sprintf("[%s] %s\r\n", sender, m.Text)

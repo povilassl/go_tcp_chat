@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 )
 
-var nextConnID uint64 = 0
+var nextConnectionID uint64 = 0
 
 type Client struct {
 	ID   uint64
@@ -16,7 +16,7 @@ type Client struct {
 }
 
 func NewClient(conn net.Conn) *Client {
-	id := atomic.AddUint64(&nextConnID, 1)
+	id := atomic.AddUint64(&nextConnectionID, 1)
 
 	return &Client{
 		ID:   id,

@@ -49,7 +49,6 @@ func handleEndOfConnection(client *hub.Client, h *hub.Hub, err error) {
 	h.Disconnect(client, reason)
 }
 
-// TODO possibility to leave whitespace in messages
 func handleInput(h *hub.Hub, c *hub.Client, raw string) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -57,9 +56,8 @@ func handleInput(h *hub.Hub, c *hub.Client, raw string) {
 	}
 
 	if strings.HasPrefix(raw, "/") {
-		h.Execute(hub.Command{
-			Text: raw,
-			From: c})
+		c := ParseCommand(raw, c)
+		h.Execute(c)
 
 		return
 	}
@@ -69,4 +67,22 @@ func handleInput(h *hub.Hub, c *hub.Client, raw string) {
 		From: c,
 		Type: hub.MessagePublic,
 	})
+}
+
+func ParseCommand(line string, c *hub.Client) hub.Command {
+	line = strings.TrimSpace(line)
+	line = strings.TrimPrefix(line, "/")
+
+	parts := strings.SplitN(line, " ", 2)
+
+	cmd := hub.Command{
+		Name: parts[0],
+		From: c,
+	}
+
+	if len(parts) == 2 {
+		cmd.Args = parts[1]
+	}
+
+	return cmd
 }

@@ -2,13 +2,13 @@ package hub
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
 	"time"
 )
 
 type Hub struct {
 	clients    map[uint64]*Client
+	channels   map[uint64]*Channel
+	commands   map[string]CommandHandler
 	connect    chan *Client
 	disconnect chan DisconnectEvent
 	broadcast  chan Message
@@ -16,20 +16,35 @@ type Hub struct {
 	execute    chan Command
 }
 
-type DisconnectEvent struct {
-	Client *Client
-	Reason string
-}
-
 func NewHub() *Hub {
-	return &Hub{
+	hub := &Hub{
 		clients:    make(map[uint64]*Client),
+		channels:   make(map[uint64]*Channel),
+		commands:   make(map[string]CommandHandler),
 		connect:    make(chan *Client),
 		disconnect: make(chan DisconnectEvent),
 		broadcast:  make(chan Message),
 		send:       make(chan Message),
 		execute:    make(chan Command),
 	}
+
+	hub.registerCommands()
+	return hub
+}
+
+func (h *Hub) registerCommands() {
+	h.register(&NameCommand{})
+	h.register(&MsgCommand{})
+	h.register(&QuitCommand{})
+	h.register(&HelpCommand{})
+	h.register(&CreateCommand{})
+	h.register(&DeleteCommand{})
+	// h.register(&JoinCommand{})
+	// h.register(&LeaveCommand{})
+}
+
+func (h *Hub) register(cmd CommandHandler) {
+	h.commands[cmd.Name()] = cmd
 }
 
 func (h *Hub) Connect(c *Client) {
@@ -65,6 +80,14 @@ func (h *Hub) SendGreeting(client *Client) {
 
 	h.SendDirect(Message{
 		Text: welcomeMessage,
+		To:   client,
+		Type: MessageSystem,
+	})
+}
+
+func (h *Hub) SendSystem(client *Client, text string) {
+	h.handleSend(Message{
+		Text: text,
 		To:   client,
 		Type: MessageSystem,
 	})
@@ -111,6 +134,14 @@ func (h *Hub) handleDisconnect(ev DisconnectEvent) {
 	delete(h.clients, c.ID)
 }
 
+func (h *Hub) disconnectSlowClient(c *Client) {
+	fmt.Println("Disconnecting slow client. Client ID:", c.ID)
+	h.handleDisconnect(DisconnectEvent{
+		Client: c,
+		Reason: "slow",
+	})
+}
+
 func (h *Hub) handleBroadcast(msg Message) {
 	for _, c := range h.clients {
 		if msg.From != nil && c.ID == msg.From.ID {
@@ -120,139 +151,43 @@ func (h *Hub) handleBroadcast(msg Message) {
 		select {
 		case c.Send <- &msg:
 		default:
-			fmt.Println("Disconnecting slow client. Client ID:", c.ID)
-			h.handleDisconnect(DisconnectEvent{
-				Client: c,
-				Reason: "slow",
-			})
+			h.disconnectSlowClient(c)
 		}
 	}
 }
 
 func (h *Hub) handleSend(msg Message) {
-	if msg.To != nil {
-		if c, ok := h.clients[msg.To.ID]; ok {
-			select {
-			case c.Send <- &msg:
-			default:
-				fmt.Println("Disconnecting slow client. Client ID:", c.ID)
-				h.handleDisconnect(DisconnectEvent{
-					Client: c,
-					Reason: "slow",
-				})
-			}
+	recipients := msg.getRecipients()
+	for _, c := range recipients {
+		select {
+		case c.Send <- &msg:
+		default:
+			h.disconnectSlowClient(c)
 		}
 	}
 }
 
+func (h *Hub) sendSystem(to *Client, text string) {
+	h.handleSend(Message{
+		Text: text,
+		To:   to,
+		Type: MessageSystem,
+	})
+}
+
 func (h *Hub) handleExecute(cmd Command) {
-
-	switch {
-	case strings.HasPrefix(cmd.Text, "/name"):
-		args := strings.SplitN(cmd.Text, " ", 2)
-		if len(args) != 2 {
-			h.handleSend(Message{
-				Text: "Incorrect number of arguments. Usage: /name <new_name>",
-				To:   cmd.From,
-				Type: MessageSystem,
-			})
-
-			return
-		}
-
-		originalName := cmd.From.Name
-		newName := strings.TrimSpace(args[1])
-
-		// Validate new name
-		if len(newName) == 0 || len(newName) > 14 {
-			h.handleSend(Message{
-				Text: "Name must be between 1 and 14 characters long",
-				To:   cmd.From,
-				Type: MessageSystem,
-			})
-			return
-		}
-
-		if !regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(newName) {
-			h.handleSend(Message{
-				Text: "Name must contain only letters and numbers",
-				To:   cmd.From,
-				Type: MessageSystem,
-			})
-			return
-		}
-
-		cmd.From.Rename(newName)
-
-		h.handleBroadcast(Message{
-			Text: fmt.Sprintf("%s is now known as %s", originalName, newName),
-			Type: MessageSystem,
-		})
-
-	case strings.HasPrefix(cmd.Text, "/msg"):
-		args := strings.SplitN(cmd.Text, " ", 3)
-		if len(args) != 3 {
-			h.handleSend(Message{
-				Text: "Incorrect number of arguments. Usage: /msg <name> <message>",
-				To:   cmd.From,
-				Type: MessageSystem,
-			})
-
-			return
-		}
-
-		var clientName = args[1]
-		var messageText = args[2]
-
-		existingClient := h.findClientByName(clientName)
-		if existingClient == nil {
-			h.handleSend(Message{
-				Text: "Client '" + clientName + "' is not currently online",
-				To:   cmd.From,
-				Type: MessageSystem,
-			})
-		}
-
+	handler, ok := h.commands[cmd.Name]
+	if !ok {
 		h.handleSend(Message{
-			Text: messageText,
-			To:   existingClient,
-			From: cmd.From,
-			Type: MessageDirect,
-		})
-
-	case strings.HasPrefix(cmd.Text, "/quit"):
-		args := strings.SplitN(cmd.Text, " ", 2)
-
-		exitMessage := fmt.Sprintf("%s left the server", cmd.From.Name)
-
-		if len(args) == 2 {
-			exitMessage += fmt.Sprintf(". Goodbye message: %s", args[1])
-		}
-
-		h.handleBroadcast(Message{
-			Text: exitMessage,
-			Type: MessageSystem,
-		})
-
-		h.handleDisconnect(DisconnectEvent{
-			Client: cmd.From,
-			Reason: "requested",
-		})
-
-	case strings.HasPrefix(cmd.Text, "/help"):
-		h.handleSend(Message{
-			Text: "Available commands: TODO",
+			Text: "Unknown command. Send '/help' for a list of available commands.",
 			To:   cmd.From,
 			Type: MessageSystem,
 		})
 
-	default:
-		h.handleSend(Message{
-			Text: "Unknown command, send '/help' for a list of available commands",
-			To:   cmd.From,
-			Type: MessageSystem,
-		})
+		return
 	}
+
+	handler.Execute(h, cmd)
 }
 
 func (h *Hub) findClientByName(s string) *Client {
