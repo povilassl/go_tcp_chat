@@ -9,6 +9,8 @@ type QuitCommand struct{}
 
 func (c *QuitCommand) Name() string { return "quit" }
 
+func (c *QuitCommand) Usage() string { return "/quit [goodbye_message]" }
+
 func (c *QuitCommand) Execute(h *Hub, cmd Command) {
 	exitMessage := fmt.Sprintf("%s left the server", cmd.From.Name)
 
@@ -16,10 +18,11 @@ func (c *QuitCommand) Execute(h *Hub, cmd Command) {
 		exitMessage += fmt.Sprintf(". Goodbye message: %s", cmd.Args)
 	}
 
-	h.handleBroadcast(Message{
-		Text: exitMessage,
-		Type: MessageSystem,
-	})
+	//TODO send system to channels where client was connected
+	// h.handleBroadcast(Message{
+	// 	Text: exitMessage,
+	// 	Type: MessageSystem,
+	// })
 
 	h.handleDisconnect(DisconnectEvent{
 		Client: cmd.From,

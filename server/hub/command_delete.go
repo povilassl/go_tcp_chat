@@ -8,9 +8,11 @@ type DeleteCommand struct{}
 
 func (c *DeleteCommand) Name() string { return "delete" }
 
+func (c *DeleteCommand) Usage() string { return "/delete <channel_name>" }
+
 func (c *DeleteCommand) Execute(h *Hub, cmd Command) {
 	if cmd.Args == "" {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Incorrect number of arguments. Usage: /delete <channel_name>",
 		)
@@ -22,7 +24,7 @@ func (c *DeleteCommand) Execute(h *Hub, cmd Command) {
 
 	existingChannel := getChannelByName(h.channels, name)
 	if existingChannel == nil {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Channel with name '"+name+"' does not exist",
 		)
@@ -31,7 +33,7 @@ func (c *DeleteCommand) Execute(h *Hub, cmd Command) {
 	}
 
 	if existingChannel.CreatedBy == nil || existingChannel.CreatedBy.ID != cmd.From.ID {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"You do not have permissions to delete channel '"+name+"'",
 		)
@@ -41,7 +43,7 @@ func (c *DeleteCommand) Execute(h *Hub, cmd Command) {
 
 	delete(h.channels, existingChannel.ID)
 
-	h.sendSystem(
+	h.sendSystemToClient(
 		cmd.From,
 		"Channel '"+name+"' deleted successfully",
 	)

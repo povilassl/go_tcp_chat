@@ -10,10 +10,12 @@ type NameCommand struct{}
 
 func (c *NameCommand) Name() string { return "name" }
 
+func (c *NameCommand) Usage() string { return "/name <new_name>" }
+
 func (c *NameCommand) Execute(h *Hub, cmd Command) {
 
 	if cmd.Args == "" {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Incorrect number of arguments. Usage: /name <new_name>",
 		)
@@ -25,7 +27,7 @@ func (c *NameCommand) Execute(h *Hub, cmd Command) {
 	newName := strings.TrimSpace(cmd.Args)
 
 	if len(newName) == 0 || len(newName) > 14 {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Name must be between 1 and 14 characters long",
 		)
@@ -34,7 +36,7 @@ func (c *NameCommand) Execute(h *Hub, cmd Command) {
 	}
 
 	if !regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(newName) {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Name must contain only letters and numbers",
 		)
@@ -43,9 +45,5 @@ func (c *NameCommand) Execute(h *Hub, cmd Command) {
 	}
 
 	cmd.From.Rename(newName)
-
-	h.handleBroadcast(Message{
-		Text: fmt.Sprintf("%s is now known as %s", originalName, newName),
-		Type: MessageSystem,
-	})
+	h.sendSystemGlobalBroadcast(fmt.Sprintf("%s is now known as %s", originalName, newName))
 }

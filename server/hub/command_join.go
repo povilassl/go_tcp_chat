@@ -8,9 +8,11 @@ type JoinCommand struct{}
 
 func (c *JoinCommand) Name() string { return "join" }
 
+func (c *JoinCommand) Usage() string { return "/join <channel_name>" }
+
 func (c *JoinCommand) Execute(h *Hub, cmd Command) {
 	if cmd.Args == "" {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Incorrect number of arguments. Usage: /join <channel_name>",
 		)
@@ -22,7 +24,7 @@ func (c *JoinCommand) Execute(h *Hub, cmd Command) {
 
 	existingChannel := getChannelByName(h.channels, name)
 	if existingChannel == nil {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Channel with name '"+name+"' does not exist",
 		)
@@ -32,6 +34,5 @@ func (c *JoinCommand) Execute(h *Hub, cmd Command) {
 
 	existingChannel.Members[cmd.From.ID] = cmd.From
 
-	// TODO: send message to channel that user has joined
-	// TODO: send message to user that they have joined the channel
+	h.sendSystemToChannel(existingChannel, cmd.From.Name+" has joined the channel #"+name)
 }

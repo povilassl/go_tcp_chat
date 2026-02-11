@@ -12,7 +12,6 @@ type MessageType int
 
 const (
 	MessageUnknown MessageType = iota
-	MessagePublic
 	MessageChannel
 	MessageDirect
 	MessageSystem

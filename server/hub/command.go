@@ -8,6 +8,7 @@ type Command struct {
 
 type CommandHandler interface {
 	Name() string
+	Usage() string
 	Execute(h *Hub, cmd Command)
 }
 

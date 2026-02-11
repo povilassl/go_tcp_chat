@@ -9,17 +9,10 @@ func formatMessage(m *Message) string {
 
 	switch m.Type {
 	case MessageSystem:
-		sender = "System"
+		sender = "* System"
 
 	case MessageDirect:
 		sender = fmt.Sprintf("DM from %s", m.From.Name)
-
-	case MessagePublic:
-		if m.From.Name != "" {
-			sender = m.From.Name
-		} else {
-			sender = "Guest"
-		}
 
 	case MessageChannel:
 		sender = fmt.Sprintf("%s in Channel", m.From.Name) //TODO

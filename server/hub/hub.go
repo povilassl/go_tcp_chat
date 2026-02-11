@@ -11,7 +11,6 @@ type Hub struct {
 	commands   map[string]CommandHandler
 	connect    chan *Client
 	disconnect chan DisconnectEvent
-	broadcast  chan Message
 	send       chan Message
 	execute    chan Command
 }
@@ -23,7 +22,6 @@ func NewHub() *Hub {
 		commands:   make(map[string]CommandHandler),
 		connect:    make(chan *Client),
 		disconnect: make(chan DisconnectEvent),
-		broadcast:  make(chan Message),
 		send:       make(chan Message),
 		execute:    make(chan Command),
 	}
@@ -33,18 +31,22 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) registerCommands() {
-	h.register(&NameCommand{})
-	h.register(&MsgCommand{})
-	h.register(&QuitCommand{})
-	h.register(&HelpCommand{})
-	h.register(&CreateCommand{})
-	h.register(&DeleteCommand{})
-	// h.register(&JoinCommand{})
-	// h.register(&LeaveCommand{})
-}
+	commands := []CommandHandler{
+		&NameCommand{},
+		&MsgCommand{},
+		&QuitCommand{},
+		&HelpCommand{},
+		&CreateCommand{},
+		&DeleteCommand{},
+		&JoinCommand{},
+		&LeaveCommand{},
+		&ChannelCommand{},
+		&GetCommand{},
+	}
 
-func (h *Hub) register(cmd CommandHandler) {
-	h.commands[cmd.Name()] = cmd
+	for _, cmd := range commands {
+		h.commands[cmd.Name()] = cmd
+	}
 }
 
 func (h *Hub) Connect(c *Client) {
@@ -56,14 +58,6 @@ func (h *Hub) Disconnect(c *Client, reason string) {
 		Client: c,
 		Reason: reason,
 	}
-}
-
-func (h *Hub) Broadcast(msg Message) {
-	h.broadcast <- msg
-}
-
-func (h *Hub) SendDirect(msg Message) {
-	h.send <- msg
 }
 
 func (h *Hub) Execute(cmd Command) {
@@ -78,18 +72,33 @@ func (h *Hub) SendGreeting(client *Client) {
 	welcomeMessage += "Time of connection: " + time.Now().Format(time.RFC1123) + "\r\n"
 	welcomeMessage += "-----------------------------\r\n"
 
-	h.SendDirect(Message{
+	h.handleSend(Message{
 		Text: welcomeMessage,
 		To:   client,
 		Type: MessageSystem,
 	})
 }
 
-func (h *Hub) SendSystem(client *Client, text string) {
+func (h *Hub) sendSystemGlobalBroadcast(text string) {
+	h.handleBroadcast(Message{
+		Text: text,
+		Type: MessageSystem,
+	})
+}
+
+func (h *Hub) sendSystemToClient(client *Client, text string) {
 	h.handleSend(Message{
 		Text: text,
 		To:   client,
 		Type: MessageSystem,
+	})
+}
+
+func (h *Hub) sendSystemToChannel(channel *Channel, text string) {
+	h.handleSend(Message{
+		Text:    text,
+		Channel: channel,
+		Type:    MessageSystem,
 	})
 }
 
@@ -101,9 +110,6 @@ func (h *Hub) Run() {
 
 		case ev := <-h.disconnect:
 			h.handleDisconnect(ev)
-
-		case msg := <-h.broadcast:
-			h.handleBroadcast(msg)
 
 		case msg := <-h.send:
 			h.handleSend(msg)
@@ -165,14 +171,6 @@ func (h *Hub) handleSend(msg Message) {
 			h.disconnectSlowClient(c)
 		}
 	}
-}
-
-func (h *Hub) sendSystem(to *Client, text string) {
-	h.handleSend(Message{
-		Text: text,
-		To:   to,
-		Type: MessageSystem,
-	})
 }
 
 func (h *Hub) handleExecute(cmd Command) {

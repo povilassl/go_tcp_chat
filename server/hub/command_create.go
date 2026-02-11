@@ -9,9 +9,11 @@ type CreateCommand struct{}
 
 func (c *CreateCommand) Name() string { return "create" }
 
+func (c *CreateCommand) Usage() string { return "/create <channel_name>" }
+
 func (c *CreateCommand) Execute(h *Hub, cmd Command) {
 	if cmd.Args == "" {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Incorrect number of arguments. Usage: /create <channel_name>",
 		)
@@ -22,7 +24,7 @@ func (c *CreateCommand) Execute(h *Hub, cmd Command) {
 	name := strings.TrimSpace(cmd.Args)
 
 	if len(name) == 0 || len(name) > 14 {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Channel name must be between 1 and 14 characters long",
 		)
@@ -31,7 +33,7 @@ func (c *CreateCommand) Execute(h *Hub, cmd Command) {
 	}
 
 	if !regexp.MustCompile(`^[a-zA-Z]+$`).MatchString(name) {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Channel Name must contain only letters and numbers",
 		)
@@ -41,7 +43,7 @@ func (c *CreateCommand) Execute(h *Hub, cmd Command) {
 
 	existingChannel := getChannelByName(h.channels, name)
 	if existingChannel != nil {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Channel with this name already exists",
 		)
@@ -50,7 +52,7 @@ func (c *CreateCommand) Execute(h *Hub, cmd Command) {
 	}
 
 	if limitOfChannelsReached(h.channels, cmd.From.Name) {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"You have reached the limit of channels you can create",
 		)
@@ -62,7 +64,7 @@ func (c *CreateCommand) Execute(h *Hub, cmd Command) {
 	channel := NewChannel(name, cmd.From)
 	h.channels[channel.ID] = channel
 
-	h.sendSystem(
+	h.sendSystemToClient(
 		cmd.From,
 		"Channel '"+name+"' created successfully",
 	)

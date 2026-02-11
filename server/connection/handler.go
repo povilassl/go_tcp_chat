@@ -55,18 +55,8 @@ func handleInput(h *hub.Hub, c *hub.Client, raw string) {
 		return
 	}
 
-	if strings.HasPrefix(raw, "/") {
-		c := ParseCommand(raw, c)
-		h.Execute(c)
-
-		return
-	}
-
-	h.Broadcast(hub.Message{
-		Text: raw,
-		From: c,
-		Type: hub.MessagePublic,
-	})
+	cmd := ParseCommand(raw, c)
+	h.Execute(cmd)
 }
 
 func ParseCommand(line string, c *hub.Client) hub.Command {

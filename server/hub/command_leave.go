@@ -8,9 +8,11 @@ type LeaveCommand struct{}
 
 func (c *LeaveCommand) Name() string { return "leave" }
 
+func (c *LeaveCommand) Usage() string { return "/leave <channel_name>" }
+
 func (c *LeaveCommand) Execute(h *Hub, cmd Command) {
 	if cmd.Args == "" {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Incorrect number of arguments. Usage: /leave <channel_name>",
 		)
@@ -22,7 +24,7 @@ func (c *LeaveCommand) Execute(h *Hub, cmd Command) {
 
 	existingChannel := getChannelByName(h.channels, name)
 	if existingChannel == nil {
-		h.sendSystem(
+		h.sendSystemToClient(
 			cmd.From,
 			"Channel with name '"+name+"' does not exist",
 		)
@@ -32,6 +34,5 @@ func (c *LeaveCommand) Execute(h *Hub, cmd Command) {
 
 	delete(existingChannel.Members, cmd.From.ID)
 
-	// TODO: send message to channel that user has left
-	// TODO: send message to user that they have left the channel
+	h.sendSystemToChannel(existingChannel, cmd.From.Name+" has left the channel #"+name)
 }
