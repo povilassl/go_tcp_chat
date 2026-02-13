@@ -3,10 +3,10 @@ package repository
 import (
 	"context"
 
-	entities "github.com/povilassl/tcp_chat/server/internal/domain/entities"
+	"github.com/povilassl/tcp_chat/server/internal/domain/entity"
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, user *entities.User)
-	FindByUsername(ctx context.Context, username string) (*entities.User, error)
+	Create(ctx context.Context, user *entity.User)
+	FindByUsername(ctx context.Context, username string) (*entity.User, error)
 }
