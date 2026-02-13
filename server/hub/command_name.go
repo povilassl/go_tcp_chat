@@ -2,7 +2,6 @@ package hub
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 )
 
@@ -26,21 +25,9 @@ func (c *NameCommand) Execute(h *Hub, cmd Command) {
 	originalName := cmd.From.Name
 	newName := strings.TrimSpace(cmd.Args)
 
-	if len(newName) == 0 || len(newName) > 14 {
-		h.sendSystemToClient(
-			cmd.From,
-			"Name must be between 1 and 14 characters long",
-		)
-
-		return
-	}
-
-	if !regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(newName) {
-		h.sendSystemToClient(
-			cmd.From,
-			"Name must contain only letters and numbers",
-		)
-
+	valid, message := isNameValid(newName)
+	if !valid {
+		h.sendSystemToClient(cmd.From, message)
 		return
 	}
 

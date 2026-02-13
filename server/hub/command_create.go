@@ -1,7 +1,6 @@
 package hub
 
 import (
-	"regexp"
 	"strings"
 )
 
@@ -22,22 +21,9 @@ func (c *CreateCommand) Execute(h *Hub, cmd Command) {
 	}
 
 	name := strings.TrimSpace(cmd.Args)
-
-	if len(name) == 0 || len(name) > 14 {
-		h.sendSystemToClient(
-			cmd.From,
-			"Channel name must be between 1 and 14 characters long",
-		)
-
-		return
-	}
-
-	if !regexp.MustCompile(`^[a-zA-Z]+$`).MatchString(name) {
-		h.sendSystemToClient(
-			cmd.From,
-			"Channel Name must contain only letters and numbers",
-		)
-
+	valid, message := isNameValid(name)
+	if !valid {
+		h.sendSystemToClient(cmd.From, message)
 		return
 	}
 

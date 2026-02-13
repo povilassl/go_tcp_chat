@@ -15,7 +15,7 @@ func formatMessage(m *Message) string {
 		sender = fmt.Sprintf("DM from %s", m.From.Name)
 
 	case MessageChannel:
-		sender = fmt.Sprintf("%s in Channel", m.From.Name) //TODO
+		sender = fmt.Sprintf("%s in Channel #%s", m.From.Name, m.Channel.Name)
 
 	default:
 		sender = "Unknown"

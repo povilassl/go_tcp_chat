@@ -21,14 +21,16 @@
 
 ### In progress
 
+- [ ] Persistence
+  - [ ] Register / login
+  - [ ] Add mysql
+  - [ ] Limit creation of channels
+  - [ ] Add docker
+
 ### Backlog
 
 - [ ] Add excluded clients to broadcast?
 - [ ] Help message
-- [ ] Persistence
-  - [ ] Load messages?
-  - [ ] Register / login
-  - [ ] Limit creation of channels
 - [ ] Support multiple calls for same command?
 - [ ] File transfer?
 - [ ] Implement client
