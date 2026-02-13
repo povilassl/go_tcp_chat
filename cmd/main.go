@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/povilassl/tcp_chat/server/connection"
-	"github.com/povilassl/tcp_chat/server/hub"
+	"github.com/povilassl/tcp_chat/connection"
+	"github.com/povilassl/tcp_chat/hub"
 )
 
 func main() {
