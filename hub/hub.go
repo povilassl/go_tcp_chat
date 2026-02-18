@@ -3,27 +3,35 @@ package hub
 import (
 	"fmt"
 	"time"
+
+	"github.com/povilassl/tcp_chat/internal/application"
 )
 
 type Hub struct {
-	clients    map[uint64]*Client
-	channels   map[uint64]*Channel
-	commands   map[string]CommandHandler
-	connect    chan *Client
-	disconnect chan DisconnectEvent
-	send       chan Message
-	execute    chan Command
+	clients        map[uint64]*Client
+	channels       map[uint64]*Channel
+	commands       map[string]CommandHandler
+	connect        chan *Client
+	disconnect     chan DisconnectEvent
+	send           chan Message
+	execute        chan Command
+	authService    *application.AuthService
+	channelService *application.ChannelService
 }
 
-func NewHub() *Hub {
+func NewHub(
+	authService *application.AuthService,
+	channelService *application.ChannelService) *Hub {
 	hub := &Hub{
-		clients:    make(map[uint64]*Client),
-		channels:   make(map[uint64]*Channel),
-		commands:   make(map[string]CommandHandler),
-		connect:    make(chan *Client),
-		disconnect: make(chan DisconnectEvent),
-		send:       make(chan Message),
-		execute:    make(chan Command),
+		clients:        make(map[uint64]*Client),
+		channels:       make(map[uint64]*Channel),
+		commands:       make(map[string]CommandHandler),
+		connect:        make(chan *Client),
+		disconnect:     make(chan DisconnectEvent),
+		send:           make(chan Message),
+		execute:        make(chan Command),
+		authService:    authService,
+		channelService: channelService,
 	}
 
 	hub.registerCommands()
@@ -31,17 +39,19 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) registerCommands() {
+	base := &BaseCommand{}
 	commands := []CommandHandler{
-		&NameCommand{},
-		&MsgCommand{},
-		&QuitCommand{},
-		&HelpCommand{},
-		&CreateCommand{},
-		&DeleteCommand{},
-		&JoinCommand{},
-		&LeaveCommand{},
-		&ChannelCommand{},
-		&GetCommand{},
+		&NameCommand{BaseCommand: *base},
+		&MsgCommand{BaseCommand: *base},
+		&QuitCommand{BaseCommand: *base},
+		&HelpCommand{BaseCommand: *base},
+		&CreateCommand{BaseCommand: *base},
+		&DeleteCommand{BaseCommand: *base},
+		&JoinCommand{BaseCommand: *base},
+		&LeaveCommand{BaseCommand: *base},
+		&ChannelCommand{BaseCommand: *base},
+		&GetCommand{BaseCommand: *base},
+		&RegisterCommand{BaseCommand: *base},
 	}
 
 	for _, cmd := range commands {

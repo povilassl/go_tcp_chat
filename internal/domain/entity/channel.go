@@ -7,9 +7,18 @@ import (
 )
 
 type Channel struct {
-	ID   uuid.UUID
-	Name string
-	// Members   map[uint64]*Client //TODO?
-	CreatedBy *User
+	ID          uuid.UUID
+	ChannelName string
+	CreatedByID uuid.UUID
+	// Members     map[uint64]*hub.Client
 	CreatedAt time.Time
+}
+
+func NewChannel(name string, createdByID uuid.UUID) *Channel {
+	return &Channel{
+		ID:          uuid.New(),
+		ChannelName: name,
+		CreatedByID: createdByID,
+		CreatedAt:   time.Now(),
+	}
 }

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/povilassl/tcp_chat/server/hub"
+	"github.com/povilassl/tcp_chat/hub"
 )
 
 func Handle(h *hub.Hub, conn net.Conn) {

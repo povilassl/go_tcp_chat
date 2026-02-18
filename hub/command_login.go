@@ -4,13 +4,15 @@ import (
 	"strings"
 )
 
-type RegisterCommand struct{}
+type LoginCommand struct{}
 
-func (c *RegisterCommand) Name() string { return "register" }
+func (c *LoginCommand) Name() string { return "login" }
 
-func (c *RegisterCommand) Usage() string { return "/register <username> <password>" }
+func (c *LoginCommand) Usage() string { return "/login <username> <password>" }
 
-func (c *RegisterCommand) Execute(h *Hub, cmd Command) {
+//TODO: continue adding base messages and require auth commands
+
+func (c *LoginCommand) Execute(h *Hub, cmd Command) {
 	args := strings.SplitN(cmd.Args, " ", 2)
 
 	if len(args) != 2 {
@@ -25,7 +27,7 @@ func (c *RegisterCommand) Execute(h *Hub, cmd Command) {
 	name := strings.TrimSpace(args[0])
 	pass := strings.TrimSpace(args[1])
 
-	err := h.authService.Register(name, pass)
+	user, err := h.authService.Login(name, pass)
 	if err != nil {
 		h.sendSystemToClient(
 			cmd.From,
@@ -35,8 +37,10 @@ func (c *RegisterCommand) Execute(h *Hub, cmd Command) {
 		return
 	}
 
+	cmd.From.Login(user)
+
 	h.sendSystemToClient(
 		cmd.From,
-		"User '"+name+"' registered successfully",
+		"User '"+name+"' logged in successfully",
 	)
 }

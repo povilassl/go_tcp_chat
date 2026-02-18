@@ -10,17 +10,19 @@ func (c *LeaveCommand) Name() string { return "leave" }
 
 func (c *LeaveCommand) Usage() string { return "/leave <channel_name>" }
 
-func (c *LeaveCommand) Execute(h *Hub, cmd Command) {
-	if cmd.Args == "" {
-		h.sendSystemToClient(
-			cmd.From,
-			"Incorrect number of arguments. Usage: /leave <channel_name>",
-		)
+func (c *LeaveCommand) BaseErrorMessage() string { return "Error leaving channel" }
 
+func (c *LeaveCommand) Execute(h *Hub, cmd Command) {
+	if !h.RequireAuth(cmd, c.BaseErrorMessage()) {
 		return
 	}
 
-	name := strings.TrimSpace(cmd.Args)
+	args, ok := h.GetArgs(cmd, 1, c.Usage(), c.BaseErrorMessage())
+	if !ok {
+		return
+	}
+
+	name := strings.TrimSpace(args[0])
 
 	existingChannel := getChannelByName(h.channels, name)
 	if existingChannel == nil {

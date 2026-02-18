@@ -6,6 +6,8 @@ func (c *HelpCommand) Name() string { return "help" }
 
 func (c *HelpCommand) Usage() string { return "/help" }
 
+func (c *HelpCommand) BaseErrorMessage() string { return "" }
+
 func (c *HelpCommand) Execute(h *Hub, cmd Command) {
 
 	message := "Available commands:\r\n"

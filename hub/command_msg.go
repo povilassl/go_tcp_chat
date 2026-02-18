@@ -1,6 +1,9 @@
 package hub
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type MsgCommand struct{}
 
@@ -8,12 +11,14 @@ func (c *MsgCommand) Name() string { return "msg" }
 
 func (c *MsgCommand) Usage() string { return "/msg <name> <message>" }
 
+func (c *MsgCommand) BaseErrorMessage() string { return "Error sending message" }
+
 func (c *MsgCommand) Execute(h *Hub, cmd Command) {
 	args := strings.SplitN(cmd.Args, " ", 2)
 	if len(args) != 2 {
 		h.sendSystemToClient(
 			cmd.From,
-			"Incorrect number of arguments. Usage: /msg <name> <message>",
+			fmt.Sprintf("%s: Incorrect number of arguments. Usage: %s", c.BaseErrorMessage(), c.Usage()),
 		)
 
 		return
@@ -26,11 +31,13 @@ func (c *MsgCommand) Execute(h *Hub, cmd Command) {
 	if existingClient == nil {
 		h.sendSystemToClient(
 			cmd.From,
-			"Client '"+clientName+"' is not currently online",
+			fmt.Sprintf("%s: Client '%s' is not currently online", c.BaseErrorMessage(), clientName),
 		)
 
 		return
 	}
+
+	//save message to history
 
 	h.handleSend(Message{
 		Text: messageText,

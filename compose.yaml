@@ -15,17 +15,24 @@ services:
       target: final
     ports:
       - 8000:8000
+    env_file:
+      - .env
     depends_on:
-      db:
+      mysql:
         condition: service_healthy
-  db:
+  mysql:
     image: mysql
     restart: always
-    container_name: chat_mysql
+    container_name: chat_db
     volumes:
       - db-data:/var/lib/mysql
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 volumes:
   db-data:

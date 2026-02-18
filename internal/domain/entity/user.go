@@ -7,8 +7,17 @@ import (
 )
 
 type User struct {
-	Id        uuid.UUID
-	Username  string
-	Password  string
-	CreatedAt time.Time
+	ID           uuid.UUID
+	Username     string
+	PasswordHash string
+	CreatedAt    time.Time
+}
+
+func NewUser(username, passwordHash string) *User {
+	return &User{
+		ID:           uuid.New(),
+		Username:     username,
+		PasswordHash: passwordHash,
+		CreatedAt:    time.Now(),
+	}
 }

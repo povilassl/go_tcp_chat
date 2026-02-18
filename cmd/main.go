@@ -10,10 +10,28 @@ import (
 
 	"github.com/povilassl/tcp_chat/connection"
 	"github.com/povilassl/tcp_chat/hub"
+	"github.com/povilassl/tcp_chat/internal/application"
+	"github.com/povilassl/tcp_chat/internal/infrastructure/db"
+	"github.com/povilassl/tcp_chat/internal/infrastructure/mysql"
 )
 
 func main() {
-	h := hub.NewHub()
+	if err := db.RunMigrations(); err != nil {
+		panic(err)
+	} else {
+		fmt.Println("Database migrations completed successfully.")
+	}
+
+	dbConn, err := db.NewConnection()
+	if err != nil {
+		panic(err)
+	}
+	defer dbConn.Close()
+
+	userRepo := mysql.NewUserRepository(dbConn)
+	authService := application.NewAuthService(userRepo)
+
+	h := hub.NewHub(authService)
 	go h.Run()
 
 	ln, err := net.Listen("tcp", ":8000")

@@ -7,9 +7,10 @@ import (
 )
 
 type Message struct {
-	Id        uuid.UUID
-	ChannelID uuid.UUID
-	UserID    uuid.UUID
-	Content   string
-	CreatedAt time.Time
+	Id         uuid.UUID
+	ChannelID  uuid.UUID
+	UserFromID uuid.UUID
+	UserToID   uuid.UUID
+	Content    string
+	CreatedAt  time.Time
 }

@@ -8,7 +8,12 @@ func (c *GetCommand) Name() string { return "get" }
 
 func (c *GetCommand) Usage() string { return "/get" }
 
+func (c *GetCommand) BaseErrorMessage() string { return "Error getting channels" }
+
 func (c *GetCommand) Execute(h *Hub, cmd Command) {
+	if !h.RequireAuth(cmd, c.BaseErrorMessage()) {
+		return
+	}
 
 	if len(h.channels) == 0 {
 		h.sendSystemToClient(
