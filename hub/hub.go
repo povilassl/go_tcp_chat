@@ -17,11 +17,13 @@ type Hub struct {
 	execute        chan Command
 	authService    *application.AuthService
 	channelService *application.ChannelService
+	userService    *application.UserService
 }
 
 func NewHub(
 	authService *application.AuthService,
-	channelService *application.ChannelService) *Hub {
+	channelService *application.ChannelService,
+	userService *application.UserService) *Hub {
 	hub := &Hub{
 		clients:        make(map[uint64]*Client),
 		channels:       make(map[uint64]*Channel),
@@ -32,6 +34,7 @@ func NewHub(
 		execute:        make(chan Command),
 		authService:    authService,
 		channelService: channelService,
+		userService:    userService,
 	}
 
 	hub.registerCommands()
@@ -39,19 +42,18 @@ func NewHub(
 }
 
 func (h *Hub) registerCommands() {
-	base := &BaseCommand{}
 	commands := []CommandHandler{
-		&NameCommand{BaseCommand: *base},
-		&MsgCommand{BaseCommand: *base},
-		&QuitCommand{BaseCommand: *base},
-		&HelpCommand{BaseCommand: *base},
-		&CreateCommand{BaseCommand: *base},
-		&DeleteCommand{BaseCommand: *base},
-		&JoinCommand{BaseCommand: *base},
-		&LeaveCommand{BaseCommand: *base},
-		&ChannelCommand{BaseCommand: *base},
-		&GetCommand{BaseCommand: *base},
-		&RegisterCommand{BaseCommand: *base},
+		&NameCommand{},
+		&MsgCommand{},
+		&QuitCommand{},
+		&HelpCommand{},
+		&CreateCommand{},
+		&DeleteCommand{},
+		&JoinCommand{},
+		&LeaveCommand{},
+		&ChannelCommand{},
+		&GetCommand{},
+		&RegisterCommand{},
 	}
 
 	for _, cmd := range commands {
@@ -78,7 +80,6 @@ func (h *Hub) SendGreeting(client *Client) {
 	welcomeMessage := "Welcome to the server!\r\n\r\n"
 	welcomeMessage += "-----------------------------\r\n"
 	welcomeMessage += "Your client ID is: " + fmt.Sprint(client.ID) + "\r\n"
-	welcomeMessage += "Your name is: " + client.Name + "\r\n"
 	welcomeMessage += "Time of connection: " + time.Now().Format(time.RFC1123) + "\r\n"
 	welcomeMessage += "-----------------------------\r\n"
 
@@ -198,15 +199,15 @@ func (h *Hub) handleExecute(cmd Command) {
 	handler.Execute(h, cmd)
 }
 
-func (h *Hub) findClientByName(s string) *Client {
-	for _, c := range h.clients {
-		if c.Name == s {
-			return c
-		}
-	}
+// func (h *Hub) findClientByName(s string) *Client {
+// 	for _, c := range h.clients {
+// 		if c.Name == s {
+// 			return c
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (h *Hub) Shutdown() {
 	fmt.Println("Disconnecting all clients...")

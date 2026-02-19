@@ -1,8 +1,8 @@
 package hub
 
-type ChannelCommand struct {
-	BaseCommand
-}
+import "fmt"
+
+type ChannelCommand struct{}
 
 func (c *ChannelCommand) Name() string { return "channel" }
 
@@ -11,7 +11,6 @@ func (c *ChannelCommand) Usage() string { return "/channel <channel_name> <messa
 func (c *ChannelCommand) BaseErrorMessage() string { return "Error sending message to channel" }
 
 func (c *ChannelCommand) Execute(h *Hub, cmd Command) {
-
 	if !h.RequireAuth(cmd, c.BaseErrorMessage()) {
 		return
 	}
@@ -21,13 +20,14 @@ func (c *ChannelCommand) Execute(h *Hub, cmd Command) {
 		return
 	}
 
-	name := args[0]
+	channelName := args[0]
+	messageText := args[1]
 
-	existingChannel := getChannelByName(h.channels, name)
+	existingChannel := getChannelByName(h.channels, channelName)
 	if existingChannel == nil {
 		h.sendSystemToClient(
 			cmd.From,
-			"Can not send message. Channel with name '"+name+"' does not exist",
+			fmt.Sprintf("%s: Channel '%s' does not exist", c.BaseErrorMessage(), channelName),
 		)
 
 		return
@@ -36,14 +36,14 @@ func (c *ChannelCommand) Execute(h *Hub, cmd Command) {
 	if existingChannel.Members[cmd.From.ID] == nil {
 		h.sendSystemToClient(
 			cmd.From,
-			"Can not send message. You are not a member of channel '"+name+"'",
+			fmt.Sprintf("%s: You are not a member of channel '%s'", c.BaseErrorMessage(), channelName),
 		)
 
 		return
 	}
 
 	msg := Message{
-		Text:    args[1],
+		Text:    messageText,
 		From:    cmd.From,
 		Channel: existingChannel,
 		Type:    MessageChannel,

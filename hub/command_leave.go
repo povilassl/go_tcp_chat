@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -28,13 +29,16 @@ func (c *LeaveCommand) Execute(h *Hub, cmd Command) {
 	if existingChannel == nil {
 		h.sendSystemToClient(
 			cmd.From,
-			"Channel with name '"+name+"' does not exist",
+			fmt.Sprintf("%s: Channel '%s' does not exist", c.BaseErrorMessage(), name),
 		)
-
 		return
 	}
 
+	//TODO
 	delete(existingChannel.Members, cmd.From.ID)
 
-	h.sendSystemToChannel(existingChannel, cmd.From.Name+" has left the channel #"+name)
+	h.sendSystemToChannel(
+		existingChannel,
+		fmt.Sprintf("%s has left the channel #%s", cmd.From.User.Nickname, name),
+	)
 }

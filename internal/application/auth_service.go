@@ -19,7 +19,10 @@ func NewAuthService(users repository.UserRepository) *AuthService {
 }
 
 // TODO add service interfaces
-func (a *AuthService) Register(username, password string) error {
+func (a *AuthService) Register(
+	username string,
+	password string,
+	nickname *string) error {
 
 	usernameValid, usernameMessage := isUsernameValid(username)
 	if !usernameValid {
@@ -36,7 +39,16 @@ func (a *AuthService) Register(username, password string) error {
 		return fmt.Errorf("Error registering user: %s", err.Error())
 	}
 
-	user := entity.NewUser(username, string(passwordBytes))
+	if nickname != nil {
+		nicknameValid, nicknameMessage := isNicknameValid(*nickname)
+		if !nicknameValid {
+			return fmt.Errorf("Error registering user: %s", nicknameMessage)
+		}
+	} else {
+		nickname = &username
+	}
+
+	user := entity.NewUser(username, *nickname, string(passwordBytes))
 
 	err = a.users.Create(user)
 	if err != nil {

@@ -23,67 +23,36 @@ func NewMessageService(
 }
 
 func (a *MessageService) Create(
-	channelName string,
 	userFromID uuid.UUID,
-	userToID uuid.UUID,
-	content string) error {
-
+	userToID *uuid.UUID,
+	channelName *string,
+	content string) (*entity.Message, error) {
 	if userFromID == uuid.Nil {
-		return fmt.Errorf("Message must have UserFromID set")
+		return nil, fmt.Errorf("Message must have UserFromID set")
 	}
 
-	if userToID != uuid.Nil && channelName != "" {
-		return fmt.Errorf("Message cannot have both UserToID and ChannelName set")
+	if (userToID != nil && channelName != nil) ||
+		(userToID == nil && channelName == nil) {
+		return nil, fmt.Errorf("Message must have either UserToID or ChannelName set")
 	}
 
-	nameValid, nameMessage := isChannelNameValid(channelName)
-	if !nameValid {
-		return fmt.Errorf("%s", nameMessage)
+	var channelID *uuid.UUID
+	if channelName != nil {
+		channel, err := a.channels.GetByName(*channelName)
+		if err != nil {
+			return nil, fmt.Errorf("%s", err.Error())
+		}
+
+		channelID = &channel.ID
 	}
 
-	channelExists, err := a.channels.GetByName(channelName)
-
-	//TODO double check err message
-	if err != nil && err.Error() != "sql: no rows in result set" {
-		return fmt.Errorf("%s", err.Error())
-	}
-
-	if channelExists != nil {
-		return fmt.Errorf("Channel with this name already exists")
-	}
-
-	channelsByUser, err := a.channels.GetByUserID(userFromID)
+	message := entity.NewMessage(content, userFromID, userToID, channelID)
+	err := a.messages.Create(&message)
 	if err != nil {
-		return fmt.Errorf("%s", err.Error())
+		return nil, fmt.Errorf("%s", err.Error())
 	}
 
-	if len(*channelsByUser) >= 3 {
-		return fmt.Errorf("You have reached the limit of channels you can create, current maximum limit is 3")
-	}
-
-	channel := entity.NewChannel(name, user.ID)
-	return a.channels.Create(channel)
+	return &message, nil
 }
 
-func (a *ChannelService) Delete(name string, user *entity.User) error {
-	if user == nil {
-		return fmt.Errorf("You must be logged in to delete a channel")
-	}
-
-	channel, err := a.channels.GetByName(name)
-
-	//TODO double check err message
-	if err != nil && err.Error() != "sql: no rows in result set" {
-		return fmt.Errorf("%s", err.Error())
-	}
-
-	if channel == nil {
-		return fmt.Errorf("Channel by name '%s' does not exist", name)
-	}
-
-	if channel.CreatedByID != user.ID {
-		return fmt.Errorf("You do not have permissions to delete channel '%s'", name)
-	}
-
-	return a.channels.Delete(channel.ID)
-}
+//TODO delete?

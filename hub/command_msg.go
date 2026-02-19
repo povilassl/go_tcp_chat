@@ -2,7 +2,6 @@ package hub
 
 import (
 	"fmt"
-	"strings"
 )
 
 type MsgCommand struct{}
@@ -14,19 +13,19 @@ func (c *MsgCommand) Usage() string { return "/msg <name> <message>" }
 func (c *MsgCommand) BaseErrorMessage() string { return "Error sending message" }
 
 func (c *MsgCommand) Execute(h *Hub, cmd Command) {
-	args := strings.SplitN(cmd.Args, " ", 2)
-	if len(args) != 2 {
-		h.sendSystemToClient(
-			cmd.From,
-			fmt.Sprintf("%s: Incorrect number of arguments. Usage: %s", c.BaseErrorMessage(), c.Usage()),
-		)
+	if !h.RequireAuth(cmd, c.BaseErrorMessage()) {
+		return
+	}
 
+	args, ok := h.GetArgs(cmd, 2, c.Usage(), c.BaseErrorMessage())
+	if !ok {
 		return
 	}
 
 	var clientName = args[0]
 	var messageText = args[1]
 
+	//TODO continue here
 	existingClient := h.findClientByName(clientName)
 	if existingClient == nil {
 		h.sendSystemToClient(
@@ -37,7 +36,7 @@ func (c *MsgCommand) Execute(h *Hub, cmd Command) {
 		return
 	}
 
-	//save message to history
+	//TODO: save message to history
 
 	h.handleSend(Message{
 		Text: messageText,

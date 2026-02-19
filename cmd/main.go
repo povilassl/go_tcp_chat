@@ -29,9 +29,14 @@ func main() {
 	defer dbConn.Close()
 
 	userRepo := mysql.NewUserRepository(dbConn)
-	authService := application.NewAuthService(userRepo)
+	channelRepo := mysql.NewChannelRepository(dbConn)
+	messageRepo := mysql.NewMessageRepository(dbConn)
 
-	h := hub.NewHub(authService)
+	authService := application.NewAuthService(userRepo)
+	channelservice := application.NewChannelService(channelRepo, messageRepo)
+	userService := application.NewUserService(userRepo)
+
+	h := hub.NewHub(authService, channelservice, userService)
 	go h.Run()
 
 	ln, err := net.Listen("tcp", ":8000")

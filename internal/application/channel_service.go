@@ -9,11 +9,15 @@ import (
 
 type ChannelService struct {
 	channels repository.ChannelRepository
+	messages repository.MessageRepository
 }
 
-func NewChannelService(channels repository.ChannelRepository) *ChannelService {
+func NewChannelService(
+	channels repository.ChannelRepository,
+	messages repository.MessageRepository) *ChannelService {
 	return &ChannelService{
 		channels: channels,
+		messages: messages,
 	}
 }
 
@@ -71,5 +75,22 @@ func (a *ChannelService) Delete(name string, user *entity.User) error {
 		return fmt.Errorf("You do not have permissions to delete channel '%s'", name)
 	}
 
+	err = a.messages.DeleteByChannelID(channel.ID)
+	if err != nil {
+		return fmt.Errorf("%s", err.Error())
+	}
+
 	return a.channels.Delete(channel.ID)
+}
+
+func (a *ChannelService) Get(limit int, offset int) (*[]entity.Channel, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+
+	if offset < 0 {
+		offset = 0
+	}
+
+	return a.channels.Get(limit, offset)
 }

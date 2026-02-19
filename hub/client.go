@@ -11,8 +11,8 @@ import (
 var nextConnectionID uint64 = 0
 
 type Client struct {
-	ID   uint64
-	Name string
+	ID uint64
+	// Name string
 	Conn net.Conn
 	User *entity.User
 	Send chan *Message
@@ -23,7 +23,6 @@ func NewClient(conn net.Conn) *Client {
 
 	return &Client{
 		ID:   id,
-		Name: "Guest" + fmt.Sprint(id),
 		Conn: conn,
 		User: nil,
 		Send: make(chan *Message, 16),
@@ -48,10 +47,10 @@ func formatMessage(m *Message) string {
 		sender = "* System"
 
 	case MessageDirect:
-		sender = fmt.Sprintf("DM from %s", m.From.Name)
+		sender = fmt.Sprintf("DM from %s", m.From.User.Nickname)
 
 	case MessageChannel:
-		sender = fmt.Sprintf("%s in Channel #%s", m.From.Name, m.Channel.Name)
+		sender = fmt.Sprintf("%s in Channel #%s", m.From.User.Nickname, m.Channel.Name)
 
 	default:
 		sender = "Unknown"
@@ -63,8 +62,4 @@ func formatMessage(m *Message) string {
 // TODO: possibility to add persistent nicknames
 func (c *Client) Login(user *entity.User) {
 	c.User = user
-}
-
-func (c *Client) Rename(newName string) {
-	c.Name = newName
 }

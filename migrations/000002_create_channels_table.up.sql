@@ -9,3 +9,5 @@ create table channels (
         references users(id)
         on delete cascade
 )
+
+/*TODO lenghts not aligning with validation*/

@@ -48,6 +48,17 @@ func (r *ChannelRepository) GetByUserID(userID uuid.UUID) (*[]entity.Channel, er
 	return &channels, nil
 }
 
+func (r *ChannelRepository) Get(limit int, offset int) (*[]entity.Channel, error) {
+	channels := []entity.Channel{}
+	err := r.db.Select(&channels, "SELECT * FROM channels LIMIT $1 OFFSET $2", limit, offset)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &channels, nil
+}
+
 func (r *ChannelRepository) Delete(id uuid.UUID) error {
 	_, err := r.db.Exec("DELETE FROM channels WHERE id = $1", id)
 

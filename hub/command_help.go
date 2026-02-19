@@ -1,5 +1,7 @@
 package hub
 
+import "fmt"
+
 type HelpCommand struct{}
 
 func (c *HelpCommand) Name() string { return "help" }
@@ -14,7 +16,7 @@ func (c *HelpCommand) Execute(h *Hub, cmd Command) {
 
 	for _, cmd := range h.commands {
 		if usageCmd, ok := cmd.(interface{ Usage() string }); ok {
-			message += "- " + usageCmd.Usage() + "\r\n"
+			message += fmt.Sprintf("- %s\r\n", usageCmd.Usage())
 		}
 	}
 

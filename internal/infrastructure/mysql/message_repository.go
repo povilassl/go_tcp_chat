@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/povilassl/tcp_chat/internal/domain/entity"
 )
@@ -24,6 +25,12 @@ func (r *MessageRepository) Create(message *entity.Message) error {
 		message.Content,
 		message.CreatedAt,
 	)
+
+	return err
+}
+
+func (r *MessageRepository) DeleteByChannelID(channelID uuid.UUID) error {
+	_, err := r.db.Exec("DELETE FROM messages WHERE channel_id = $1", channelID)
 
 	return err
 }

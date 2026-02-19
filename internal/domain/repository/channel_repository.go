@@ -10,5 +10,6 @@ type ChannelRepository interface {
 	Create(channel *entity.Channel) error
 	GetByName(name string) (*entity.Channel, error)
 	GetByUserID(userID uuid.UUID) (*[]entity.Channel, error)
+	Get(limit int, offset int) (*[]entity.Channel, error)
 	Delete(id uuid.UUID) error
 }

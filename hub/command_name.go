@@ -3,8 +3,6 @@ package hub
 import (
 	"fmt"
 	"strings"
-
-	"github.com/povilassl/tcp_chat/hub/helpers"
 )
 
 type NameCommand struct{}
@@ -16,25 +14,23 @@ func (c *NameCommand) Usage() string { return "/name <new_name>" }
 func (c *NameCommand) BaseErrorMessage() string { return "Error changing name" }
 
 func (c *NameCommand) Execute(h *Hub, cmd Command) {
-
-	if cmd.Args == "" {
-		h.sendSystemToClient(
-			cmd.From,
-			fmt.Sprintf("%s: Incorrect number of arguments. Usage: %s", c.BaseErrorMessage(), c.Usage()),
-		)
-
+	if !h.RequireAuth(cmd, c.BaseErrorMessage()) {
 		return
 	}
 
-	originalName := cmd.From.Name
-	newName := strings.TrimSpace(cmd.Args)
-
-	valid, message := helpers.IsNicknameValid(newName)
-	if !valid {
-		h.sendSystemToClient(cmd.From, message)
+	args, ok := h.GetArgs(cmd, 1, c.Usage(), c.BaseErrorMessage())
+	if !ok {
 		return
 	}
 
-	cmd.From.Rename(newName)
+	originalName := cmd.From.User.Nickname
+	newName := strings.TrimSpace(args[0])
+
+	err := h.userService.Rename(cmd.From.User, &newName)
+	if err != nil {
+		h.sendSystemToClient(cmd.From, err.Error())
+		return
+	}
+
 	h.sendSystemGlobalBroadcast(fmt.Sprintf("%s is now known as %s", originalName, newName))
 }

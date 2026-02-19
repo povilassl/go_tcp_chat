@@ -36,13 +36,13 @@ func getChannelByName(channel map[uint64]*Channel, name string) *Channel {
 	return nil
 }
 
-func limitOfChannelsReached(channel map[uint64]*Channel, name string) bool {
-	count := 0
-	for _, c := range channel {
-		if c.CreatedBy != nil && c.CreatedBy.Name == name {
-			count++
-		}
-	}
+// func limitOfChannelsReached(channel map[uint64]*Channel, name string) bool {
+// 	count := 0
+// 	for _, c := range channel {
+// 		if c.CreatedBy != nil && c.CreatedBy.Name == name {
+// 			count++
+// 		}
+// 	}
 
-	return count >= limitOfChannelsPerUser
-}
+// 	return count >= limitOfChannelsPerUser
+// }

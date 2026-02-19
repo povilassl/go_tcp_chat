@@ -24,10 +24,45 @@ func (h *Hub) GetArgs(
 	usage string,
 	baseErrorMessage string) ([]string, bool) {
 
-	args := strings.SplitN(cmd.Args, " ", paramCount)
+	return h.GetArgsRange(cmd, paramCount, paramCount, usage, baseErrorMessage)
+}
 
-	//TODO validate if works when 1
-	if len(args) != paramCount {
+func (h *Hub) GetArgsRange(
+	cmd Command,
+	minParamCount int,
+	maxParamCount int,
+	usage string,
+	baseErrorMessage string) ([]string, bool) {
+
+	if minParamCount < 0 || maxParamCount < minParamCount {
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: Invalid argument configuration", baseErrorMessage),
+		)
+
+		return []string{}, false
+	}
+
+	trimmedArgs := strings.TrimSpace(cmd.Args)
+	if trimmedArgs == "" {
+		if minParamCount == 0 {
+			return []string{}, true
+		}
+
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: Incorrect number of arguments. Usage: %s", baseErrorMessage, usage),
+		)
+
+		return []string{}, false
+	}
+
+	args := strings.SplitN(trimmedArgs, " ", maxParamCount)
+	for i := range args {
+		args[i] = strings.TrimSpace(args[i])
+	}
+
+	if len(args) < minParamCount || len(args) > maxParamCount {
 		h.sendSystemToClient(
 			cmd.From,
 			fmt.Sprintf("%s: Incorrect number of arguments. Usage: %s", baseErrorMessage, usage),

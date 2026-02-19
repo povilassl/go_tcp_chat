@@ -1,35 +1,34 @@
 package hub
 
-import (
-	"strings"
-)
+import "fmt"
 
 type RegisterCommand struct{}
 
 func (c *RegisterCommand) Name() string { return "register" }
 
-func (c *RegisterCommand) Usage() string { return "/register <username> <password>" }
+func (c *RegisterCommand) Usage() string { return "/register <username> <password> [nickname]" }
+
+func (c *RegisterCommand) BaseErrorMessage() string { return "Error registering user" }
 
 func (c *RegisterCommand) Execute(h *Hub, cmd Command) {
-	args := strings.SplitN(cmd.Args, " ", 2)
-
-	if len(args) != 2 {
-		h.sendSystemToClient(
-			cmd.From,
-			"Incorrect number of arguments. Usage: /register <username> <password>",
-		)
-
+	args, ok := h.GetArgsRange(cmd, 2, 3, c.Usage(), c.BaseErrorMessage())
+	if !ok {
 		return
 	}
 
-	name := strings.TrimSpace(args[0])
-	pass := strings.TrimSpace(args[1])
+	name := args[0]
+	pass := args[1]
+	var nick *string
 
-	err := h.authService.Register(name, pass)
+	if len(args) == 3 {
+		nick = &args[2]
+	}
+
+	err := h.authService.Register(name, pass, nick)
 	if err != nil {
 		h.sendSystemToClient(
 			cmd.From,
-			err.Error(),
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), err.Error()),
 		)
 
 		return
@@ -37,6 +36,6 @@ func (c *RegisterCommand) Execute(h *Hub, cmd Command) {
 
 	h.sendSystemToClient(
 		cmd.From,
-		"User '"+name+"' registered successfully",
+		fmt.Sprintf("User '%s' registered successfully", name),
 	)
 }

@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -10,17 +11,11 @@ func (c *LoginCommand) Name() string { return "login" }
 
 func (c *LoginCommand) Usage() string { return "/login <username> <password>" }
 
-//TODO: continue adding base messages and require auth commands
+func (c *LoginCommand) BaseErrorMessage() string { return "Error logging in" }
 
 func (c *LoginCommand) Execute(h *Hub, cmd Command) {
-	args := strings.SplitN(cmd.Args, " ", 2)
-
-	if len(args) != 2 {
-		h.sendSystemToClient(
-			cmd.From,
-			"Incorrect number of arguments. Usage: /register <username> <password>",
-		)
-
+	args, ok := h.GetArgs(cmd, 2, c.Usage(), c.BaseErrorMessage())
+	if !ok {
 		return
 	}
 
@@ -41,6 +36,6 @@ func (c *LoginCommand) Execute(h *Hub, cmd Command) {
 
 	h.sendSystemToClient(
 		cmd.From,
-		"User '"+name+"' logged in successfully",
+		fmt.Sprintf("Welcome to the server, %s!", cmd.From.User.Nickname),
 	)
 }

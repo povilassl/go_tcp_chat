@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -28,7 +29,7 @@ func (c *JoinCommand) Execute(h *Hub, cmd Command) {
 	if existingChannel == nil {
 		h.sendSystemToClient(
 			cmd.From,
-			"Channel with name '"+name+"' does not exist",
+			fmt.Sprintf("%s: Channel '%s' does not exist", c.BaseErrorMessage(), name),
 		)
 
 		return
@@ -36,5 +37,5 @@ func (c *JoinCommand) Execute(h *Hub, cmd Command) {
 
 	existingChannel.Members[cmd.From.ID] = cmd.From
 
-	h.sendSystemToChannel(existingChannel, cmd.From.Name+" has joined the channel #"+name)
+	h.sendSystemToChannel(existingChannel, fmt.Sprintf("%s has joined the channel #%s", cmd.From.User.Nickname, name))
 }
