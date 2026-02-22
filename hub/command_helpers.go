@@ -3,11 +3,13 @@ package hub
 import (
 	"fmt"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
-func (h *Hub) RequireAuth(cmd Command, baseErrorMessage string) bool {
+func (h *Hub) requireAuth(cmd Command, baseErrorMessage string) bool {
 
-	if cmd.From.User == nil {
+	if cmd.From.UserID == uuid.Nil {
 		h.sendSystemToClient(
 			cmd.From,
 			fmt.Sprintf("%s: You must be logged in to perform this action", baseErrorMessage),
@@ -18,16 +20,16 @@ func (h *Hub) RequireAuth(cmd Command, baseErrorMessage string) bool {
 	return true
 }
 
-func (h *Hub) GetArgs(
+func (h *Hub) getArgs(
 	cmd Command,
 	paramCount int,
 	usage string,
 	baseErrorMessage string) ([]string, bool) {
 
-	return h.GetArgsRange(cmd, paramCount, paramCount, usage, baseErrorMessage)
+	return h.getArgsRange(cmd, paramCount, paramCount, usage, baseErrorMessage)
 }
 
-func (h *Hub) GetArgsRange(
+func (h *Hub) getArgsRange(
 	cmd Command,
 	minParamCount int,
 	maxParamCount int,

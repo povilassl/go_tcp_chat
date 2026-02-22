@@ -13,11 +13,11 @@ func (c *MsgCommand) Usage() string { return "/msg <name> <message>" }
 func (c *MsgCommand) BaseErrorMessage() string { return "Error sending message" }
 
 func (c *MsgCommand) Execute(h *Hub, cmd Command) {
-	if !h.RequireAuth(cmd, c.BaseErrorMessage()) {
+	if !h.requireAuth(cmd, c.BaseErrorMessage()) {
 		return
 	}
 
-	args, ok := h.GetArgs(cmd, 2, c.Usage(), c.BaseErrorMessage())
+	args, ok := h.getArgs(cmd, 2, c.Usage(), c.BaseErrorMessage())
 	if !ok {
 		return
 	}
@@ -25,7 +25,6 @@ func (c *MsgCommand) Execute(h *Hub, cmd Command) {
 	var clientName = args[0]
 	var messageText = args[1]
 
-	//TODO continue here
 	existingClient := h.findClientByName(clientName)
 	if existingClient == nil {
 		h.sendSystemToClient(
@@ -36,12 +35,28 @@ func (c *MsgCommand) Execute(h *Hub, cmd Command) {
 		return
 	}
 
-	//TODO: save message to history
+	if existingClient.UserID == cmd.From.UserID {
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: You cannot send a message to yourself", c.BaseErrorMessage()),
+		)
 
-	h.handleSend(Message{
+		return
+	}
+
+	if _, err := h.messageService.Create(cmd.From.UserID, &existingClient.UserID, nil, messageText); err != nil {
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), err.Error()),
+		)
+		return
+	}
+
+	msg := Message{
 		Text: messageText,
-		To:   existingClient,
 		From: cmd.From,
 		Type: MessageDirect,
-	})
+	}
+
+	h.sendToUserID(existingClient.UserID, msg)
 }

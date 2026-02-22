@@ -1,11 +1,13 @@
 package hub
 
+import "fmt"
+
 type Message struct {
-	Text    string
-	From    *Client
-	To      *Client
-	Channel *Channel
-	Type    MessageType
+	Text        string
+	From        *Client
+	To          *Client
+	ChannelName string
+	Type        MessageType
 }
 
 type MessageType int
@@ -17,22 +19,30 @@ const (
 	MessageSystem
 )
 
-func (msg Message) getRecipients() []*Client {
-	if msg.To != nil {
-		return []*Client{msg.To}
-	}
+func (m *Message) Format() string {
+	var sender string
 
-	if msg.Channel != nil {
-		recipients := make([]*Client, 0, len(msg.Channel.Members))
-		for _, c := range msg.Channel.Members {
-			if msg.From != nil && c.ID == msg.From.ID {
-				continue
-			}
-			recipients = append(recipients, c)
+	switch m.Type {
+	case MessageSystem:
+		sender = "* System"
+
+	case MessageDirect:
+		name := "Unknown"
+		if m.From != nil && m.From.DisplayName != "" {
+			name = m.From.DisplayName
 		}
+		sender = fmt.Sprintf("DM from %s", name)
 
-		return recipients
+	case MessageChannel:
+		name := "Unknown"
+		if m.From != nil && m.From.DisplayName != "" {
+			name = m.From.DisplayName
+		}
+		sender = fmt.Sprintf("%s in #%s", name, m.ChannelName)
+
+	default:
+		sender = "Unknown"
 	}
 
-	return nil
+	return fmt.Sprintf("[%s] %s\r\n", sender, m.Text)
 }

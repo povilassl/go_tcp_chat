@@ -7,12 +7,12 @@ import (
 )
 
 type Message struct {
-	Id         uuid.UUID
-	UserFromID uuid.UUID
-	UserToID   *uuid.UUID
-	ChannelID  *uuid.UUID
-	Content    string
-	CreatedAt  time.Time
+	Id         uuid.UUID  `db:"id"`
+	UserFromID uuid.UUID  `db:"user_from_id"`
+	UserToID   *uuid.UUID `db:"user_to_id"`
+	ChannelID  *uuid.UUID `db:"channel_id"`
+	Content    string     `db:"content"`
+	CreatedAt  time.Time  `db:"created_at"`
 }
 
 func NewMessage(

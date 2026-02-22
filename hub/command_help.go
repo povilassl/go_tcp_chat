@@ -1,6 +1,9 @@
 package hub
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type HelpCommand struct{}
 
@@ -12,16 +15,17 @@ func (c *HelpCommand) BaseErrorMessage() string { return "" }
 
 func (c *HelpCommand) Execute(h *Hub, cmd Command) {
 
-	message := "Available commands:\r\n"
+	var message strings.Builder
+	message.WriteString("Available commands:\r\n")
 
 	for _, cmd := range h.commands {
 		if usageCmd, ok := cmd.(interface{ Usage() string }); ok {
-			message += fmt.Sprintf("- %s\r\n", usageCmd.Usage())
+			message.WriteString(fmt.Sprintf(" - %s\r\n", usageCmd.Usage()))
 		}
 	}
 
 	h.sendSystemToClient(
 		cmd.From,
-		message,
+		message.String(),
 	)
 }

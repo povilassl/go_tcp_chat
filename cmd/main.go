@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/povilassl/tcp_chat/connection"
 	"github.com/povilassl/tcp_chat/hub"
 	"github.com/povilassl/tcp_chat/internal/application"
@@ -17,44 +18,37 @@ import (
 
 func main() {
 	if err := db.RunMigrations(); err != nil {
-		panic(err)
-	} else {
-		fmt.Println("Database migrations completed successfully.")
+		fatal("Migration error", err)
 	}
+
+	fmt.Println("Database migrations completed successfully.")
 
 	dbConn, err := db.NewConnection()
 	if err != nil {
-		panic(err)
+		fatal("Database connection error", err)
 	}
+
 	defer dbConn.Close()
 
-	userRepo := mysql.NewUserRepository(dbConn)
-	channelRepo := mysql.NewChannelRepository(dbConn)
-	messageRepo := mysql.NewMessageRepository(dbConn)
-
-	authService := application.NewAuthService(userRepo)
-	channelservice := application.NewChannelService(channelRepo, messageRepo)
-	userService := application.NewUserService(userRepo)
-
-	h := hub.NewHub(authService, channelservice, userService)
+	h := bootstrapHub(dbConn)
 	go h.Run()
 
-	ln, err := net.Listen("tcp", ":8000")
+	port := getServerPort()
+	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		panic(err)
+		fatal("Listen error", err)
 	}
 
 	defer ln.Close()
 
-	fmt.Println("Listening on port 8000...")
+	fmt.Printf("Listening on port %s...\n", port)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	go func() {
 		<-ctx.Done()
-		fmt.Println("Shutting down server...")
-		h.Shutdown()
+		fmt.Println("Shutdown signal received, closing listener...")
 		ln.Close()
 	}()
 
@@ -63,13 +57,41 @@ func main() {
 		if err != nil {
 			select {
 			case <-ctx.Done():
-				fmt.Println("Server stopped accepting new connections.")
+				fmt.Println("Shutting down server...")
+				h.Shutdown()
+				fmt.Println("Server stopped.")
 				return
 			default:
-				panic(err)
+				fmt.Fprintf(os.Stderr, "Accept error: %v\n", err)
 			}
 		}
 
 		go connection.Handle(h, conn)
 	}
+}
+
+func bootstrapHub(dbConn *sqlx.DB) *hub.Hub {
+	userRepo := mysql.NewUserRepository(dbConn)
+	channelRepo := mysql.NewChannelRepository(dbConn)
+	messageRepo := mysql.NewMessageRepository(dbConn)
+
+	authService := application.NewAuthService(userRepo)
+	channelService := application.NewChannelService(channelRepo, messageRepo)
+	messageService := application.NewMessageService(messageRepo, channelRepo)
+	userService := application.NewUserService(userRepo)
+
+	return hub.NewHub(authService, channelService, messageService, userService)
+}
+
+func getServerPort() string {
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		port = "8000"
+	}
+	return port
+}
+
+func fatal(msg string, err error) {
+	fmt.Fprintf(os.Stderr, "%s: %v\n", msg, err)
+	os.Exit(1)
 }

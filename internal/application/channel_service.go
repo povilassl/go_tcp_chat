@@ -3,8 +3,10 @@ package application
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/povilassl/tcp_chat/internal/domain/entity"
 	"github.com/povilassl/tcp_chat/internal/domain/repository"
+	"github.com/povilassl/tcp_chat/internal/helpers"
 )
 
 type ChannelService struct {
@@ -26,14 +28,13 @@ func (a *ChannelService) Create(name string, user *entity.User) error {
 		return fmt.Errorf("You must be logged in to create a channel")
 	}
 
-	nameValid, nameMessage := isChannelNameValid(name)
+	nameValid, nameMessage := helpers.IsChannelNameValid(name)
 	if !nameValid {
 		return fmt.Errorf("%s", nameMessage)
 	}
 
 	channelExists, err := a.channels.GetByName(name)
 
-	//TODO double check err message
 	if err != nil && err.Error() != "sql: no rows in result set" {
 		return fmt.Errorf("%s", err.Error())
 	}
@@ -42,7 +43,7 @@ func (a *ChannelService) Create(name string, user *entity.User) error {
 		return fmt.Errorf("Channel with this name already exists")
 	}
 
-	channelsByUser, err := a.channels.GetByUserID(user.ID)
+	channelsByUser, err := a.channels.GetCreatedByUserID(user.ID)
 	if err != nil {
 		return fmt.Errorf("%s", err.Error())
 	}
@@ -62,7 +63,6 @@ func (a *ChannelService) Delete(name string, user *entity.User) error {
 
 	channel, err := a.channels.GetByName(name)
 
-	//TODO double check err message
 	if err != nil && err.Error() != "sql: no rows in result set" {
 		return fmt.Errorf("%s", err.Error())
 	}
@@ -80,6 +80,11 @@ func (a *ChannelService) Delete(name string, user *entity.User) error {
 		return fmt.Errorf("%s", err.Error())
 	}
 
+	err = a.channels.RemoveAllMembers(channel.ID)
+	if err != nil {
+		return fmt.Errorf("%s", err.Error())
+	}
+
 	return a.channels.Delete(channel.ID)
 }
 
@@ -93,4 +98,56 @@ func (a *ChannelService) Get(limit int, offset int) (*[]entity.Channel, error) {
 	}
 
 	return a.channels.Get(limit, offset)
+}
+
+func (a *ChannelService) GetByName(name string) (*entity.Channel, error) {
+	if name == "" {
+		return nil, fmt.Errorf("Invalid channel name")
+	}
+
+	return a.channels.GetByName(name)
+}
+
+func (a *ChannelService) AddMember(userID, channelID uuid.UUID) error {
+	if userID == uuid.Nil || channelID == uuid.Nil {
+		return fmt.Errorf("Invalid user or channel ID")
+	}
+
+	return a.channels.AddMember(userID, channelID)
+}
+
+func (a *ChannelService) RemoveMember(userID, channelID uuid.UUID) error {
+	if userID == uuid.Nil || channelID == uuid.Nil {
+		return fmt.Errorf("Invalid user or channel ID")
+	}
+
+	return a.channels.RemoveMember(userID, channelID)
+}
+
+func (a *ChannelService) GetMembers(channelID uuid.UUID) (*[]uuid.UUID, error) {
+	if channelID == uuid.Nil {
+		return nil, fmt.Errorf("Invalid channel ID")
+	}
+
+	return a.channels.GetMembers(channelID)
+}
+
+func (a *ChannelService) GetMembersByUserID(userID uuid.UUID) (*[]uuid.UUID, error) {
+	if userID == uuid.Nil {
+		return nil, fmt.Errorf("Invalid user ID")
+	}
+
+	return a.channels.GetMembersByUserID(userID)
+}
+
+func (a *ChannelService) GetByUserID(userID uuid.UUID) (*[]entity.Channel, error) {
+	if userID == uuid.Nil {
+		return nil, fmt.Errorf("Invalid user ID")
+	}
+
+	return a.channels.GetByUserID(userID)
+}
+
+func (a *ChannelService) GetMemberCounts() (map[uuid.UUID]int, error) {
+	return a.channels.GetMemberCounts()
 }

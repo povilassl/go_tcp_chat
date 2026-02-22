@@ -11,7 +11,7 @@ func (c *RegisterCommand) Usage() string { return "/register <username> <passwor
 func (c *RegisterCommand) BaseErrorMessage() string { return "Error registering user" }
 
 func (c *RegisterCommand) Execute(h *Hub, cmd Command) {
-	args, ok := h.GetArgsRange(cmd, 2, 3, c.Usage(), c.BaseErrorMessage())
+	args, ok := h.getArgsRange(cmd, 2, 3, c.Usage(), c.BaseErrorMessage())
 	if !ok {
 		return
 	}
@@ -36,6 +36,6 @@ func (c *RegisterCommand) Execute(h *Hub, cmd Command) {
 
 	h.sendSystemToClient(
 		cmd.From,
-		fmt.Sprintf("User '%s' registered successfully", name),
+		fmt.Sprintf("Successfully registered user %s. You can now log in using '/login %s <password>'.", name, name),
 	)
 }

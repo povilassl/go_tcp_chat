@@ -46,7 +46,7 @@ func (a *MessageService) Create(
 		channelID = &channel.ID
 	}
 
-	message := entity.NewMessage(content, userFromID, userToID, channelID)
+	message := entity.NewMessage(content, userFromID, channelID, userToID)
 	err := a.messages.Create(&message)
 	if err != nil {
 		return nil, fmt.Errorf("%s", err.Error())
@@ -54,5 +54,3 @@ func (a *MessageService) Create(
 
 	return &message, nil
 }
-
-//TODO delete?

@@ -14,23 +14,47 @@ func (c *NameCommand) Usage() string { return "/name <new_name>" }
 func (c *NameCommand) BaseErrorMessage() string { return "Error changing name" }
 
 func (c *NameCommand) Execute(h *Hub, cmd Command) {
-	if !h.RequireAuth(cmd, c.BaseErrorMessage()) {
+	if !h.requireAuth(cmd, c.BaseErrorMessage()) {
 		return
 	}
 
-	args, ok := h.GetArgs(cmd, 1, c.Usage(), c.BaseErrorMessage())
+	args, ok := h.getArgs(cmd, 1, c.Usage(), c.BaseErrorMessage())
 	if !ok {
 		return
 	}
 
-	originalName := cmd.From.User.Nickname
-	newName := strings.TrimSpace(args[0])
-
-	err := h.userService.Rename(cmd.From.User, &newName)
+	user, err := h.userService.GetByID(cmd.From.UserID)
 	if err != nil {
-		h.sendSystemToClient(cmd.From, err.Error())
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), err.Error()),
+		)
 		return
 	}
 
-	h.sendSystemGlobalBroadcast(fmt.Sprintf("%s is now known as %s", originalName, newName))
+	originalName := cmd.From.DisplayName
+	newName := strings.TrimSpace(args[0])
+
+	err = h.userService.Rename(user, &newName)
+	if err != nil {
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), err.Error()),
+		)
+		return
+	}
+
+	cmd.From.DisplayName = newName
+
+	members, err := h.channelService.GetMembersByUserID(cmd.From.UserID)
+	if err != nil {
+		return
+	}
+
+	msg := Message{
+		Text: fmt.Sprintf("%s is now known as %s", originalName, newName),
+		Type: MessageSystem,
+	}
+
+	h.sendToUserIDs(*members, msg, &cmd.From.UserID)
 }
