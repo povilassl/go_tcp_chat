@@ -33,6 +33,10 @@ func Handle(h *hub.Hub, conn net.Conn) {
 }
 
 func handleEndOfConnection(client *hub.Client, h *hub.Hub, err error) {
+	if !h.IsClientTracked(client) {
+		return
+	}
+
 	var reason string
 
 	if errors.Is(err, io.EOF) {

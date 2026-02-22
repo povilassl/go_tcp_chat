@@ -3,11 +3,13 @@ package hub
 import (
 	"fmt"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 func (h *Hub) RequireAuth(cmd Command, baseErrorMessage string) bool {
 
-	if cmd.From.User == nil {
+	if cmd.From.UserID == uuid.Nil {
 		h.sendSystemToClient(
 			cmd.From,
 			fmt.Sprintf("%s: You must be logged in to perform this action", baseErrorMessage),

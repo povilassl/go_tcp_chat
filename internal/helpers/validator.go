@@ -1,12 +1,10 @@
-package application
+package helpers
 
 import "regexp"
 
-//TODO check file naming, also maybe move these to separate helpers folder?
-
-func isUsernameValid(name string) (bool, string) {
-	if len(name) < 8 || len(name) > 14 {
-		return false, "Username must be between 8 and 14 characters long"
+func IsUsernameValid(name string) (bool, string) {
+	if len(name) < 5 || len(name) > 14 {
+		return false, "Username must be between 5 and 14 characters long"
 	}
 
 	if !regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(name) {
@@ -16,7 +14,7 @@ func isUsernameValid(name string) (bool, string) {
 	return true, ""
 }
 
-func isNicknameValid(name string) (bool, string) {
+func IsNicknameValid(name string) (bool, string) {
 	if len(name) < 8 || len(name) > 14 {
 		return false, "Nickname must be between 8 and 14 characters long"
 	}
@@ -28,7 +26,7 @@ func isNicknameValid(name string) (bool, string) {
 	return true, ""
 }
 
-func isPasswordValid(password string) (bool, string) {
+func IsPasswordValid(password string) (bool, string) {
 	if len(password) < 8 || len(password) > 14 {
 		return false, "Password must be between 8 and 14 characters long"
 	}
@@ -40,7 +38,7 @@ func isPasswordValid(password string) (bool, string) {
 	return true, ""
 }
 
-func isChannelNameValid(name string) (bool, string) {
+func IsChannelNameValid(name string) (bool, string) {
 	if len(name) < 2 || len(name) > 14 {
 		return false, "Channel name must be between 2 and 14 characters long"
 	}

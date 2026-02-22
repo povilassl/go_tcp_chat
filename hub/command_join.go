@@ -2,6 +2,7 @@ package hub
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -25,8 +26,8 @@ func (c *JoinCommand) Execute(h *Hub, cmd Command) {
 
 	name := strings.TrimSpace(args[0])
 
-	existingChannel := getChannelByName(h.channels, name)
-	if existingChannel == nil {
+	channel, err := h.channelService.GetByName(name)
+	if err != nil || channel == nil {
 		h.sendSystemToClient(
 			cmd.From,
 			fmt.Sprintf("%s: Channel '%s' does not exist", c.BaseErrorMessage(), name),
@@ -35,7 +36,36 @@ func (c *JoinCommand) Execute(h *Hub, cmd Command) {
 		return
 	}
 
-	existingChannel.Members[cmd.From.ID] = cmd.From
+	members, err := h.channelService.GetMembers(channel.ID)
+	if err != nil {
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), err.Error()),
+		)
+		return
+	}
 
-	h.sendSystemToChannel(existingChannel, fmt.Sprintf("%s has joined the channel #%s", cmd.From.User.Nickname, name))
+	isMember := slices.Contains(*members, cmd.From.UserID)
+	if isMember {
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: You are already a member of channel '%s'", c.BaseErrorMessage(), name),
+		)
+
+		return
+	}
+
+	if err := h.channelService.AddMember(cmd.From.UserID, channel.ID); err != nil {
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), err.Error()),
+		)
+		return
+	}
+
+	h.sendSystemToUserIDs(
+		*members,
+		fmt.Sprintf("%s has joined the channel #%s", cmd.From.DisplayName, name),
+		nil,
+	)
 }

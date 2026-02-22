@@ -1,6 +1,9 @@
 package hub
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type GetCommand struct{}
 
@@ -27,20 +30,30 @@ func (c *GetCommand) Execute(h *Hub, cmd Command) {
 	if len(*channels) == 0 {
 		h.sendSystemToClient(
 			cmd.From,
-			"No channels currently available",
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), "No channels currently available"),
 		)
 		return
 	}
 
-	ret := "Channels:\r\n"
+	memberCounts, err := h.channelService.GetMemberCounts()
+	if err != nil {
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), err.Error()),
+		)
+		return
+	}
+
+	var ret strings.Builder
+	ret.WriteString("Channels:\r\n")
+
 	for _, channel := range *channels {
-		//TODO: add members count
-		// ret += fmt.Sprintf(" - #%s | Members: %d\r\n", channel.ChannelName, len(channel.))
-		ret += fmt.Sprintf(" - #%s \r\n", channel.ChannelName)
+		count := memberCounts[channel.ID]
+		ret.WriteString(fmt.Sprintf(" - #%s | Members: %d\r\n", channel.ChannelName, count))
 	}
 
 	h.sendSystemToClient(
 		cmd.From,
-		ret,
+		ret.String(),
 	)
 }

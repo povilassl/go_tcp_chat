@@ -23,9 +23,17 @@ func (c *CreateCommand) Execute(h *Hub, cmd Command) {
 		return
 	}
 
+	user, err := h.userService.GetByID(cmd.From.UserID)
+	if err != nil {
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), err.Error()))
+		return
+	}
+
 	name := strings.TrimSpace(args[0])
 
-	err := h.channelService.Create(name, cmd.From.User)
+	err = h.channelService.Create(name, user)
 	if err != nil {
 		h.sendSystemToClient(
 			cmd.From,

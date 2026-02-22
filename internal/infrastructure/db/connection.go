@@ -11,7 +11,20 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// TODO refactor
+func getDBEnvVars() (user, pass, host, port, name string, err error) {
+	user = os.Getenv("DB_USER")
+	pass = os.Getenv("DB_PASSWORD")
+	host = os.Getenv("DB_HOST")
+	port = os.Getenv("DB_PORT")
+	name = os.Getenv("DB_NAME")
+
+	if user == "" || pass == "" || host == "" || port == "" || name == "" {
+		err = fmt.Errorf("missing one or more env variables: DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME")
+	}
+
+	return
+}
+
 func RunMigrations() error {
 	dsn, err := buildDSN()
 	if err != nil {
@@ -22,7 +35,6 @@ func RunMigrations() error {
 		"file:///app/migrations",
 		dsn,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -35,30 +47,23 @@ func RunMigrations() error {
 }
 
 func buildDSN() (string, error) {
-
 	driver := os.Getenv("DB_DRIVER")
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASSWORD")
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	name := os.Getenv("DB_NAME")
+	if driver == "" {
+		return "", fmt.Errorf("missing env variable: DB_DRIVER")
+	}
 
-	if driver == "" || user == "" || pass == "" || host == "" || port == "" || name == "" {
-		return "", fmt.Errorf("Missing one or more env variables: DB_DRIVER, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME")
+	user, pass, host, port, name, err := getDBEnvVars()
+	if err != nil {
+		return "", err
 	}
 
 	return fmt.Sprintf("%s://%s:%s@tcp(%s:%s)/%s", driver, user, pass, host, port, name), nil
 }
 
 func NewConnection() (*sqlx.DB, error) {
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASSWORD")
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	name := os.Getenv("DB_NAME")
-
-	if user == "" || pass == "" || host == "" || port == "" || name == "" {
-		return nil, fmt.Errorf("Missing one or more env variables: DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME")
+	user, pass, host, port, name, err := getDBEnvVars()
+	if err != nil {
+		return nil, err
 	}
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", user, pass, host, port, name)

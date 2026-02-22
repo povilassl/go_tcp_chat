@@ -7,11 +7,10 @@ import (
 )
 
 type Channel struct {
-	ID          uuid.UUID
-	ChannelName string
-	CreatedByID uuid.UUID
-	// Members     map[uint64]*hub.Client
-	CreatedAt time.Time
+	ID          uuid.UUID `db:"id"`
+	ChannelName string    `db:"channel_name"`
+	CreatedByID uuid.UUID `db:"created_by_id"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 func NewChannel(name string, createdByID uuid.UUID) *Channel {

@@ -23,14 +23,38 @@ func (c *NameCommand) Execute(h *Hub, cmd Command) {
 		return
 	}
 
-	originalName := cmd.From.User.Nickname
-	newName := strings.TrimSpace(args[0])
-
-	err := h.userService.Rename(cmd.From.User, &newName)
+	user, err := h.userService.GetByID(cmd.From.UserID)
 	if err != nil {
-		h.sendSystemToClient(cmd.From, err.Error())
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), err.Error()),
+		)
 		return
 	}
 
-	h.sendSystemGlobalBroadcast(fmt.Sprintf("%s is now known as %s", originalName, newName))
+	originalName := cmd.From.DisplayName
+	newName := strings.TrimSpace(args[0])
+
+	err = h.userService.Rename(user, &newName)
+	if err != nil {
+		h.sendSystemToClient(
+			cmd.From,
+			fmt.Sprintf("%s: %s", c.BaseErrorMessage(), err.Error()),
+		)
+		return
+	}
+
+	cmd.From.DisplayName = newName
+
+	members, err := h.channelService.GetMembersByUserID(cmd.From.UserID)
+	if err != nil {
+		return
+	}
+
+	msg := Message{
+		Text: fmt.Sprintf("%s is now known as %s", originalName, newName),
+		Type: MessageSystem,
+	}
+
+	h.sendToUserIDs(*members, msg, &cmd.From.UserID)
 }

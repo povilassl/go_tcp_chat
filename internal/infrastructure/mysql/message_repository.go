@@ -17,7 +17,7 @@ func NewMessageRepository(db *sqlx.DB) *MessageRepository {
 }
 
 func (r *MessageRepository) Create(message *entity.Message) error {
-	_, err := r.db.Exec("INSERT INTO messages (id, channel_id, user_from_id, user_to_id, content, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
+	_, err := r.db.Exec("INSERT INTO messages (id, channel_id, user_from_id, user_to_id, content, created_at) VALUES (?, ?, ?, ?, ?, ?)",
 		message.Id,
 		message.ChannelID,
 		message.UserFromID,
@@ -30,7 +30,7 @@ func (r *MessageRepository) Create(message *entity.Message) error {
 }
 
 func (r *MessageRepository) DeleteByChannelID(channelID uuid.UUID) error {
-	_, err := r.db.Exec("DELETE FROM messages WHERE channel_id = $1", channelID)
+	_, err := r.db.Exec("DELETE FROM messages WHERE channel_id = ?", channelID)
 
 	return err
 }

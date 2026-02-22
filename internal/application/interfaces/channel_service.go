@@ -1,17 +1,15 @@
-package repository
+package interfaces
 
 import (
 	"github.com/google/uuid"
 	"github.com/povilassl/tcp_chat/internal/domain/entity"
 )
 
-type ChannelRepository interface {
-	Create(channel *entity.Channel) error
-	GetByName(name string) (*entity.Channel, error)
-	GetCreatedByUserID(userID uuid.UUID) (*[]entity.Channel, error)
+type ChannelService interface {
+	Create(name string, user *entity.User) error
+	Delete(name string, user *entity.User) error
 	Get(limit int, offset int) (*[]entity.Channel, error)
-	Delete(id uuid.UUID) error
-	RemoveAllMembers(channelID uuid.UUID) error
+	GetByName(name string) (*entity.Channel, error)
 	AddMember(userID, channelID uuid.UUID) error
 	RemoveMember(userID, channelID uuid.UUID) error
 	GetMembers(channelID uuid.UUID) (*[]uuid.UUID, error)

@@ -34,9 +34,10 @@ func main() {
 
 	authService := application.NewAuthService(userRepo)
 	channelservice := application.NewChannelService(channelRepo, messageRepo)
+	messageService := application.NewMessageService(messageRepo, channelRepo)
 	userService := application.NewUserService(userRepo)
 
-	h := hub.NewHub(authService, channelservice, userService)
+	h := hub.NewHub(authService, channelservice, messageService, userService)
 	go h.Run()
 
 	ln, err := net.Listen("tcp", ":8000")
