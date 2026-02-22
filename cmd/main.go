@@ -30,20 +30,7 @@ func main() {
 
 	defer dbConn.Close()
 
-<<<<<<< HEAD
 	h := bootstrapHub(dbConn)
-=======
-	userRepo := mysql.NewUserRepository(dbConn)
-	channelRepo := mysql.NewChannelRepository(dbConn)
-	messageRepo := mysql.NewMessageRepository(dbConn)
-
-	authService := application.NewAuthService(userRepo)
-	channelservice := application.NewChannelService(channelRepo, messageRepo)
-	messageService := application.NewMessageService(messageRepo, channelRepo)
-	userService := application.NewUserService(userRepo)
-
-	h := hub.NewHub(authService, channelservice, messageService, userService)
->>>>>>> 956b4c2fd92979f87329a0c76968fbd5b5aa4fa4
 	go h.Run()
 
 	port := getServerPort()
