@@ -15,19 +15,3 @@ A lightweight chat server in Go with persistent message history, user authentica
    ```bash
    docker compose up --build
    ```
-
-### Done
-
-- [x] User authentication and channels
-- [x] TCP hub with graceful shutdown
-- [x] Persistent storage with MySQL
-- [x] Docker support
-
-### Backlog
-
-- [ ] Support multiple calls for same command
-- [ ] File transfer
-- [ ] Implement client
-  - [ ] Ping / pong
-  - [ ] Set color
-- [ ] Set keys for system messages
