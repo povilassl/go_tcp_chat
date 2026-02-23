@@ -1,6 +1,6 @@
 # Go TCP Chat
 
-A lightweight chat server in Go with persistent message history, user authentication, and channel management. Inspired by IRC and Discord.
+A lightweight TCP chat server in Go with persistent message history, user authentication, and channel management. Inspired by IRC and Discord.
 
 # Running the server
 
